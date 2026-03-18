@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "67186739808",
+    "project_id": "thaidrive-b7eb4",
+    "storage_bucket": "thaidrive-b7eb4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:67186739808:android:fd6e3ed8d21a947f7bd105",
+        "android_client_info": {
+          "package_name": "com.example.thaidrivesecure"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsNUxZcTGExkc51dX2M99P93FavV9dVFk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
