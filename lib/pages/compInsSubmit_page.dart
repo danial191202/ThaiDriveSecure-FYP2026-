@@ -40,53 +40,96 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
   }
 
   int get passengers => widget.formData['passengers'] ?? 1;
-
   String get durationLabel => widget.formData['duration'] ?? "9 Days";
-
   String get vehicleType => widget.formData['vehicleType'] ?? 'Sedan';
 
   int get totalDays => returnDate.difference(departDate).inDays + 1;
 
   // ================= PRICE TABLE =================
   int get insurancePrice {
-    switch (durationLabel) {
-      case "9 Days":
-        return 25;
-      case "19 Days":
-        return 35;
-      case "1 Month":
-        return 45;
-      case "3 Months":
-        return 65;
-      case "6 Months":
-        return 95;
-      case "1 Year":
-        return 150;
+    switch (vehicleType) {
+      case "Pickup/SUV":
+        switch (durationLabel) {
+          case "9 Days":
+            return 30;
+          case "19 Days":
+            return 45;
+          case "1 Month":
+            return 65;
+          case "3 Months":
+            return 90;
+          case "6 Months":
+            return 135;
+          case "1 Year":
+            return 220;
+          default:
+            return 0;
+        }
+
+      case "MPV":
+        switch (durationLabel) {
+          case "9 Days":
+            return 30;
+          case "19 Days":
+            return 45;
+          case "1 Month":
+            return 65;
+          case "3 Months":
+            return 90;
+          case "6 Months":
+            return 135;
+          case "1 Year":
+            return 220;
+          default:
+            return 0;
+        }
+
+      case "Motorcycle":
+        switch (durationLabel) {
+          case "3 Months":
+            return 38;
+          case "6 Months":
+            return 55;
+          case "1 Year":
+            return 90;
+          default:
+            return 0;
+        }
+
+      case "Sedan":
       default:
-        return 0;
+        switch (durationLabel) {
+          case "9 Days":
+            return 25;
+          case "19 Days":
+            return 35;
+          case "1 Month":
+            return 45;
+          case "3 Months":
+            return 65;
+          case "6 Months":
+            return 95;
+          case "1 Year":
+            return 150;
+          default:
+            return 0;
+        }
     }
   }
 
   int get tdacPrice => passengers * 2;
   int get tm23Price => 8;
-
   int get totalPrice => insurancePrice + tdacPrice + tm23Price;
 
   // ================= IMAGE UPLOAD =================
   Future<String> _uploadImage(File file, String storagePath) async {
-    debugPrint("Uploading file: ${file.path}");
-    debugPrint("Uploading to storage path: $storagePath");
-
     if (!await file.exists()) {
       throw Exception("File does not exist: ${file.path}");
     }
 
     final ref = FirebaseStorage.instance.ref().child(storagePath);
-
-    final uploadTask = await ref.putFile(file);
-    final downloadUrl = await uploadTask.ref.getDownloadURL();
-
-    return downloadUrl;
+    await ref.putFile(file);
+    return await ref.getDownloadURL();
   }
 
   // ================= CHECKOUT =================
@@ -102,27 +145,17 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
 
     setState(() => isSubmitting = true);
 
-    debugPrint("========== CHECKOUT DEBUG ==========");
-    debugPrint("Current user UID: ${user.uid}");
-    debugPrint("Vehicle Grant Path: ${widget.vehicleGrantPath}");
-    debugPrint("Passport Count: ${widget.passportPaths.length}");
-    debugPrint("Duration: $durationLabel");
-    debugPrint("Vehicle Type: $vehicleType");
-    debugPrint("===================================");
-
     try {
       final orderRef =
           FirebaseFirestore.instance.collection('insurance_orders').doc();
 
       final orderId = orderRef.id;
 
-      // 1️⃣ Upload vehicle grant
       final vehicleGrantUrl = await _uploadImage(
         File(widget.vehicleGrantPath),
         "insurance_orders/$orderId/vehicle_grant.jpg",
       );
 
-      // 2️⃣ Upload passports
       List<String> passportUrls = [];
 
       for (int i = 0; i < widget.passportPaths.length; i++) {
@@ -133,21 +166,17 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
         passportUrls.add(url);
       }
 
-      // 3️⃣ Save order in Firestore
       await orderRef.set({
         'orderId': orderId,
         'userId': user.uid,
         ...widget.formData,
-
         'durationDays': totalDays,
         'durationLabel': durationLabel,
         'vehicleType': vehicleType,
-
         'insurancePrice': insurancePrice,
         'tdacPrice': tdacPrice,
         'tm23Price': tm23Price,
         'totalPrice': totalPrice,
-
         'deliveryMethod': selectedDelivery,
         'documents': {
           'vehicleGrantUrl': vehicleGrantUrl,
@@ -164,14 +193,13 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
         MaterialPageRoute(builder: (_) => const PaymentPage()),
       );
     } on FirebaseException catch (e) {
-      debugPrint("FirebaseException: ${e.code} - ${e.message}");
-
       String errorMessage = "Submission failed";
 
-      if (e.code == 'unauthorized') {
+      if (e.plugin == 'firebase_storage' && e.code == 'unauthorized') {
         errorMessage =
             "Storage permission denied. Please check Firebase Storage Rules.";
-      } else if (e.code == 'permission-denied') {
+      } else if (e.plugin == 'cloud_firestore' &&
+          e.code == 'permission-denied') {
         errorMessage =
             "Firestore permission denied. Please check Firestore Rules.";
       } else {
@@ -182,7 +210,6 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
         SnackBar(content: Text(errorMessage)),
       );
     } catch (e) {
-      debugPrint("General Error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Submission failed: $e")),
       );
@@ -218,13 +245,19 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF163B6D),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onPressed: isSubmitting ? null : checkout,
                 child: isSubmitting
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
                         "Checkout >",
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
               ),
             ),
@@ -249,22 +282,29 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
           _infoRow("Name", widget.formData['name'] ?? ''),
           _infoRow("No.Telephone", widget.formData['phone'] ?? ''),
           _infoRow("Where", widget.formData['where'] ?? ''),
+          _infoRow("Vehicle Type", vehicleType),
           _infoRow(
             "When",
             "${_formatDate(departDate)} - ${_formatDate(returnDate)} ($durationLabel)",
           ),
           _infoRow("Passenger", passengers.toString()),
+
           const Divider(height: 24),
+
           Text(
             "1. Insurance Compulsory ($durationLabel)\n"
             "2. TM2/3\n"
             "3. TDAC",
           ),
+
           const Divider(height: 24),
+
           _priceRow("Insurance Compulsory ($durationLabel)", insurancePrice),
           _priceRow("TM2/3", tm23Price),
           _priceRow("TDAC (RM2 × $passengers)", tdacPrice),
+
           const Divider(),
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

@@ -15,6 +15,9 @@ class CompInsUploadPage extends StatefulWidget {
   final String whenDate;
   final int passengerCount;
   final String duration;
+  final String vehicleType;
+  final DateTime departDate;
+  final DateTime returnDate;
 
   const CompInsUploadPage({
     super.key,
@@ -24,6 +27,9 @@ class CompInsUploadPage extends StatefulWidget {
     required this.whenDate,
     required this.passengerCount,
     required this.duration,
+    required this.vehicleType,
+    required this.departDate,
+    required this.returnDate,
   });
 
   @override
@@ -36,47 +42,13 @@ class _CompInsUploadPageState extends State<CompInsUploadPage> {
   File? vehicleGrantImage;
   late List<File?> passportImages;
 
-  // ✅ NEW: extracted dates
-  DateTime? departDate;
-  DateTime? returnDate;
-
   @override
   void initState() {
     super.initState();
     passportImages = List.generate(widget.passengerCount, (_) => null);
-
-    // ✅ EXTRACT DATE FROM STRING
-    _extractDatesFromWhen();
   }
 
-  // ================= EXTRACT DATE =================
-  void _extractDatesFromWhen() {
-    try {
-      String when = widget.whenDate;
-
-      final parts = when.split('-');
-
-      String start = parts[0].trim();
-      String end = parts[1].split('(')[0].trim();
-
-      departDate = _parseDate(start);
-      returnDate = _parseDate(end);
-    } catch (_) {
-      departDate = DateTime.now();
-      returnDate = DateTime.now().add(const Duration(days: 1));
-    }
-  }
-
-  DateTime _parseDate(String date) {
-    final parts = date.split('/');
-    return DateTime(
-      int.parse(parts[2]),
-      int.parse(parts[1]),
-      int.parse(parts[0]),
-    );
-  }
-
-  // ================= SAVE IMAGE =================
+  // ================= SAVE IMAGE PERMANENTLY =================
   Future<File> _saveImagePermanently(XFile image) async {
     final directory = await getApplicationDocumentsDirectory();
     final fileName =
@@ -123,14 +95,11 @@ class _CompInsUploadPageState extends State<CompInsUploadPage> {
             'where': widget.where,
             'when': widget.whenDate,
             'passengers': widget.passengerCount,
-            'vehicleType': 'Sedan',
+            'vehicleType': widget.vehicleType,
+            'duration': widget.duration,
+            'departDate': widget.departDate,
+            'returnDate': widget.returnDate,
             'packages': ['Insurance Compulsory', 'TM2/3', 'TDAC'],
-            'duration': widget.duration, // ✅ ADD THIS
-
-            // ✅ FIXED (NO MORE NULL)
-            'departDate': departDate ?? DateTime.now(),
-            'returnDate': returnDate ??
-                (departDate ?? DateTime.now()).add(const Duration(days: 1)),
           },
           vehicleGrantPath: vehicleGrantImage!.path,
           passportPaths: passportImages.map((file) => file!.path).toList(),

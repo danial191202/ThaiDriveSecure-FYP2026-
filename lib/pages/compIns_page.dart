@@ -2,20 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:thaidrivesecure/pages/compInsUpload_page.dart';
 
-class compIns extends StatefulWidget {
-  const compIns({super.key});
+class CompIns extends StatefulWidget {
+  final String vehicleType;
+
+  const CompIns({
+    super.key,
+    required this.vehicleType,
+  });
 
   @override
-  State<compIns> createState() => _compInsState();
+  State<CompIns> createState() => _CompInsState();
 }
 
-class _compInsState extends State<compIns> {
+class _CompInsState extends State<CompIns> {
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  // ================= LOCATIONS =================
   final List<String> fromPlaces = [
     "Bukit Kayu Hitam",
     "Wang Kelian",
@@ -43,19 +47,27 @@ class _compInsState extends State<compIns> {
   bool isLoading = false;
   bool isPressed = false;
 
-  // ================= INSURANCE DURATION =================
   String _duration = "9 Days";
 
-  final List<String> durationList = [
-    "9 Days",
-    "19 Days",
-    "1 Month",
-    "3 Months",
-    "6 Months",
-    "1 Year",
-  ];
+  List<String> get durationList {
+    if (widget.vehicleType == "Motorcycle") {
+      return [
+        "3 Months",
+        "6 Months",
+        "1 Year",
+      ];
+    }
 
-  // ================= DATE FORMAT =================
+    return [
+      "9 Days",
+      "19 Days",
+      "1 Month",
+      "3 Months",
+      "6 Months",
+      "1 Year",
+    ];
+  }
+
   String formatDate(DateTime? date) {
     if (date == null) return "";
     return "${date.day}/${date.month}/${date.year}";
@@ -66,7 +78,39 @@ class _compInsState extends State<compIns> {
     return _returnDate!.difference(_departDate!).inDays + 1;
   }
 
-  // ================= SUBMIT =================
+  String get vehicleImage {
+    switch (widget.vehicleType) {
+      case "Pickup/SUV":
+        return "assets/suv.png";
+      case "MPV":
+        return "assets/mpv.png";
+      case "Motorcycle":
+        return "assets/motorcycle.png";
+      case "Sedan":
+      default:
+        return "assets/sedan1.png";
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Make sure default duration is valid for selected vehicle
+    if (widget.vehicleType == "Motorcycle") {
+      _duration = "3 Months";
+    } else {
+      _duration = "9 Days";
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
   Future<void> submit() async {
     if (!_formKey.currentState!.validate() ||
         _departDate == null ||
@@ -85,6 +129,8 @@ class _compInsState extends State<compIns> {
 
     await Future.delayed(const Duration(seconds: 1));
 
+    if (!mounted) return;
+
     setState(() {
       isLoading = false;
       isPressed = false;
@@ -100,15 +146,15 @@ class _compInsState extends State<compIns> {
           whenDate:
               "${formatDate(_departDate)} – ${formatDate(_returnDate)} ($totalDays days)",
           passengerCount: _passenger,
-
-          // ✅ FIXED (use correct variable)
           duration: _duration,
+          vehicleType: widget.vehicleType,
+          departDate: _departDate!,
+          returnDate: _returnDate!,
         ),
       ),
     );
   }
 
-  // ================= UI =================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -117,14 +163,14 @@ class _compInsState extends State<compIns> {
         padding: const EdgeInsets.only(bottom: 24),
         child: Column(
           children: [
-            // HEADER
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 24),
               decoration: const BoxDecoration(color: Color(0xFF163B6D)),
               child: Column(
                 children: [
-                  Image.asset('assets/sedan1.png', height: 120),
+                  const SizedBox(height: 30),
+                  Image.asset(vehicleImage, height: 120),
                   const SizedBox(height: 12),
                   const Text(
                     "Compulsory Package",
@@ -140,15 +186,14 @@ class _compInsState extends State<compIns> {
                     indent: 40,
                     endIndent: 40,
                   ),
-                  const Text(
-                    "Type of Vehicle: Sedan",
-                    style: TextStyle(color: Colors.white70),
+                  Text(
+                    "Type of Vehicle: ${widget.vehicleType}",
+                    style: const TextStyle(color: Colors.white70),
                   ),
                 ],
               ),
             ),
 
-            // FORM
             Container(
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(16),
@@ -156,20 +201,17 @@ class _compInsState extends State<compIns> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
               ),
-
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     const Text("Insurance : Compulsory"),
                     const SizedBox(height: 6),
                     const Text(
                       "TM2/3 : Driver’s Car Information",
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-
                     const SizedBox(height: 16),
 
                     inputField(
@@ -191,7 +233,6 @@ class _compInsState extends State<compIns> {
 
                     const SizedBox(height: 20),
 
-                    // FROM & TO
                     Row(
                       children: [
                         Expanded(
@@ -218,7 +259,6 @@ class _compInsState extends State<compIns> {
 
                     const SizedBox(height: 20),
 
-                    // DATES
                     Row(
                       children: [
                         Expanded(
@@ -243,9 +283,7 @@ class _compInsState extends State<compIns> {
                             },
                           ),
                         ),
-
                         const SizedBox(width: 12),
-
                         Expanded(
                           child: calendarField(
                             label: "Return date",
@@ -287,7 +325,6 @@ class _compInsState extends State<compIns> {
 
                     const SizedBox(height: 15),
 
-                    // ✅ INSURANCE DURATION (MAIN FIX)
                     dropdown(
                       "Insurance Duration",
                       _duration,
@@ -338,7 +375,6 @@ class _compInsState extends State<compIns> {
     );
   }
 
-  // ================= INPUT FIELD =================
   Widget inputField(
     String label,
     TextEditingController controller, {
@@ -364,7 +400,6 @@ class _compInsState extends State<compIns> {
     );
   }
 
-  // ================= DROPDOWN =================
   Widget dropdown(
     String label,
     String value,
@@ -388,7 +423,6 @@ class _compInsState extends State<compIns> {
     );
   }
 
-  // ================= DATE PICKER =================
   Widget calendarField({
     required String label,
     required String value,

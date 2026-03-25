@@ -33,6 +33,8 @@ class _HomePageState extends State<HomePage> {
     super.initState();
 
     _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (!_pageController.hasClients) return;
+
       _currentSlide = (_currentSlide + 1) % promoImages.length;
 
       _pageController.animateToPage(
@@ -54,19 +56,15 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFEAF6FB),
-
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text("Home Page", style: TextStyle(color: Colors.black)),
         centerTitle: true,
       ),
-
       bottomNavigationBar: bottomNav(),
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -135,33 +133,38 @@ class _HomePageState extends State<HomePage> {
   // ================= PACKAGE SLIDER =================
 
   Widget packageCompulsorySlider() {
-    final packages = ["Sedan", "Pickup/SUV", "MPV", "Motorcycle"];
+    final packages = [
+      {"title": "Sedan", "vehicleType": "Sedan"},
+      {"title": "Pickup/SUV", "vehicleType": "Pickup/SUV"},
+      {"title": "MPV", "vehicleType": "MPV"},
+      {"title": "Motorcycle", "vehicleType": "Motorcycle"},
+    ];
 
     return SizedBox(
-      height: 130,
+      height: 170,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: packages.length,
-
         itemBuilder: (context, index) {
+          final package = packages[index];
+          final title = package["title"]!;
+          final vehicleType = package["vehicleType"]!;
+
           return GestureDetector(
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => compIns(),
+                  builder: (_) => CompIns(vehicleType: vehicleType),
                 ),
               );
             },
-
             child: Container(
-              width: 120,
+              width: 150,
               margin: const EdgeInsets.only(right: 12),
-
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
-
                 boxShadow: const [
                   BoxShadow(
                     color: Colors.black12,
@@ -170,21 +173,23 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ],
               ),
-
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Image.asset(
-                    getVehicleIcon(packages[index]),
-                    width: 80,
-                    height: 80,
+                    getVehicleIcon(title),
+                    width: 90,
+                    height: 90,
+                    fit: BoxFit.contain,
                   ),
-
-                  const SizedBox(height: 10),
-
+                  const SizedBox(height: 12),
                   Text(
-                    packages[index],
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
                   ),
                 ],
               ),
@@ -196,11 +201,91 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget packageCompulsoryVoluntarySlider() {
-    return packageCompulsorySlider();
+    final packages = ["Sedan", "Pickup/SUV", "MPV", "Motorcycle"];
+
+    return SizedBox(
+      height: 170,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: packages.length,
+        itemBuilder: (context, index) {
+          return Container(
+            width: 150,
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 6,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  getVehicleIcon(packages[index]),
+                  width: 90,
+                  height: 90,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  packages[index],
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Widget packageCompulsoryVoluntaryPlusSlider() {
-    return packageCompulsorySlider();
+    final packages = ["Sedan", "Pickup/SUV", "MPV" , "Motorcycle"];
+
+    return SizedBox(
+      height: 170,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: packages.length,
+        itemBuilder: (context, index) {
+          return Container(
+            width: 150,
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 6,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  getVehicleIcon(packages[index]),
+                  width: 90,
+                  height: 90,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  packages[index],
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   // ================= ICON =================
@@ -209,16 +294,12 @@ class _HomePageState extends State<HomePage> {
     switch (type) {
       case "Sedan":
         return "assets/sedan1.png";
-
       case "Pickup/SUV":
         return "assets/suv.png";
-
       case "MPV":
         return "assets/mpv.png";
-
       case "Motorcycle":
         return "assets/motorcycle.png";
-
       default:
         return "assets/sedan1.png";
     }
@@ -241,30 +322,24 @@ class _HomePageState extends State<HomePage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(14),
-
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.black26),
       ),
-
       child: Row(
         children: [
           Container(
             width: 80,
             height: 80,
             padding: const EdgeInsets.all(8),
-
             decoration: BoxDecoration(
               color: const Color(0xFFEAF6FB),
               borderRadius: BorderRadius.circular(12),
             ),
-
             child: Image.asset(imagePath),
           ),
-
           const SizedBox(width: 12),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,9 +348,7 @@ class _HomePageState extends State<HomePage> {
                   title,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-
                 const SizedBox(height: 6),
-
                 Text(
                   description,
                   style: const TextStyle(fontSize: 13, color: Colors.black54),
@@ -283,7 +356,6 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-
           const Icon(Icons.arrow_forward_ios, size: 16),
         ],
       ),
@@ -295,14 +367,10 @@ class _HomePageState extends State<HomePage> {
   Widget bottomNav() {
     return BottomNavigationBar(
       backgroundColor: const Color(0xFF163B6D),
-
       selectedItemColor: Colors.white,
       unselectedItemColor: Colors.white70,
-
       type: BottomNavigationBarType.fixed,
-
       currentIndex: _selectedIndex,
-
       onTap: (index) {
         if (index == _selectedIndex) return;
 
@@ -333,17 +401,13 @@ class _HomePageState extends State<HomePage> {
             break;
         }
       },
-
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-
         BottomNavigationBarItem(
           icon: Icon(Icons.check_circle),
           label: "Status",
         ),
-
         BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
-
         BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Setting"),
       ],
     );
@@ -359,9 +423,7 @@ class PromotionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-
       clipBehavior: Clip.antiAlias,
-
       child: Image.asset(imagePath, fit: BoxFit.cover, width: double.infinity),
     );
   }
