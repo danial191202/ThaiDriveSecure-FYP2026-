@@ -26,66 +26,67 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
   String selectedDelivery = "Take Away";
   bool isSubmitting = false;
 
-  // ================= PRICE CALCULATION =================
-  int get insurancePrice => widget.formData['insurancePrice'] ?? 25;
-  int get tdacPrice => widget.formData['tdacPrice'] ?? 2;
+  // ================= SAFE DATE =================
+  DateTime get departDate {
+    final value = widget.formData['departDate'];
+    if (value is DateTime) return value;
+    return DateTime.now();
+  }
+
+  DateTime get returnDate {
+    final value = widget.formData['returnDate'];
+    if (value is DateTime) return value;
+    return DateTime.now().add(const Duration(days: 1));
+  }
+
+  int get passengers => widget.formData['passengers'] ?? 1;
+
+  String get durationLabel => widget.formData['duration'] ?? "9 Days";
+
+  String get vehicleType => widget.formData['vehicleType'] ?? 'Sedan';
+
+  int get totalDays => returnDate.difference(departDate).inDays + 1;
+
+  // ================= PRICE TABLE =================
+  int get insurancePrice {
+    switch (durationLabel) {
+      case "9 Days":
+        return 25;
+      case "19 Days":
+        return 35;
+      case "1 Month":
+        return 45;
+      case "3 Months":
+        return 65;
+      case "6 Months":
+        return 95;
+      case "1 Year":
+        return 150;
+      default:
+        return 0;
+    }
+  }
+
+  int get tdacPrice => passengers * 2;
   int get tm23Price => 8;
 
   int get totalPrice => insurancePrice + tdacPrice + tm23Price;
 
-  // ================= DATE FORMATTER =================
-  String formatWhenDisplay(String raw) {
-    try {
-      final parts = raw.split('|');
-
-      final inPart = parts[0].replaceAll("In:", "").trim();
-      final outPart =
-          parts[1].split('(')[0].replaceAll("Out:", "").trim();
-
-      DateTime inDate = _parseDate(inPart);
-      DateTime outDate = _parseDate(outPart);
-
-      return "${_formatDate(inDate)} – ${_formatDate(outDate, withYear: true)}";
-    } catch (_) {
-      return raw;
-    }
-  }
-
-  DateTime _parseDate(String date) {
-    final parts = date.split('/');
-    return DateTime(
-      int.parse(parts[2]),
-      int.parse(parts[1]),
-      int.parse(parts[0]),
-    );
-  }
-
-  String _formatDate(DateTime date, {bool withYear = false}) {
-    const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec"
-    ];
-
-    return withYear
-        ? "${date.day} ${months[date.month - 1]} ${date.year}"
-        : "${date.day} ${months[date.month - 1]}";
-  }
-
   // ================= IMAGE UPLOAD =================
   Future<String> _uploadImage(File file, String storagePath) async {
+    debugPrint("Uploading file: ${file.path}");
+    debugPrint("Uploading to storage path: $storagePath");
+
+    if (!await file.exists()) {
+      throw Exception("File does not exist: ${file.path}");
+    }
+
     final ref = FirebaseStorage.instance.ref().child(storagePath);
-    await ref.putFile(file);
-    return await ref.getDownloadURL();
+
+    final uploadTask = await ref.putFile(file);
+    final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+    return downloadUrl;
   }
 
   // ================= CHECKOUT =================
@@ -93,12 +94,21 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("User not logged in")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("User not logged in")),
+      );
       return;
     }
 
     setState(() => isSubmitting = true);
+
+    debugPrint("========== CHECKOUT DEBUG ==========");
+    debugPrint("Current user UID: ${user.uid}");
+    debugPrint("Vehicle Grant Path: ${widget.vehicleGrantPath}");
+    debugPrint("Passport Count: ${widget.passportPaths.length}");
+    debugPrint("Duration: $durationLabel");
+    debugPrint("Vehicle Type: $vehicleType");
+    debugPrint("===================================");
 
     try {
       final orderRef =
@@ -106,11 +116,13 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
 
       final orderId = orderRef.id;
 
+      // 1️⃣ Upload vehicle grant
       final vehicleGrantUrl = await _uploadImage(
         File(widget.vehicleGrantPath),
         "insurance_orders/$orderId/vehicle_grant.jpg",
       );
 
+      // 2️⃣ Upload passports
       List<String> passportUrls = [];
 
       for (int i = 0; i < widget.passportPaths.length; i++) {
@@ -121,14 +133,21 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
         passportUrls.add(url);
       }
 
+      // 3️⃣ Save order in Firestore
       await orderRef.set({
         'orderId': orderId,
         'userId': user.uid,
         ...widget.formData,
+
+        'durationDays': totalDays,
+        'durationLabel': durationLabel,
+        'vehicleType': vehicleType,
+
         'insurancePrice': insurancePrice,
         'tdacPrice': tdacPrice,
         'tm23Price': tm23Price,
         'totalPrice': totalPrice,
+
         'deliveryMethod': selectedDelivery,
         'documents': {
           'vehicleGrantUrl': vehicleGrantUrl,
@@ -144,9 +163,29 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
         context,
         MaterialPageRoute(builder: (_) => const PaymentPage()),
       );
+    } on FirebaseException catch (e) {
+      debugPrint("FirebaseException: ${e.code} - ${e.message}");
+
+      String errorMessage = "Submission failed";
+
+      if (e.code == 'unauthorized') {
+        errorMessage =
+            "Storage permission denied. Please check Firebase Storage Rules.";
+      } else if (e.code == 'permission-denied') {
+        errorMessage =
+            "Firestore permission denied. Please check Firestore Rules.";
+      } else {
+        errorMessage = "Submission failed: ${e.message}";
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Submission failed: $e")));
+      debugPrint("General Error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Submission failed: $e")),
+      );
     } finally {
       if (mounted) setState(() => isSubmitting = false);
     }
@@ -157,7 +196,6 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFEAF6FB),
-
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -168,36 +206,25 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
         ),
         centerTitle: true,
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-
             _orderReviewCard(),
-
             const Spacer(),
-
             SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF163B6D),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                 ),
                 onPressed: isSubmitting ? null : checkout,
                 child: isSubmitting
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
                         "Checkout >",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                        style: TextStyle(color: Colors.white),
                       ),
               ),
             ),
@@ -207,7 +234,7 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
     );
   }
 
-  // ================= ORDER REVIEW CARD =================
+  // ================= CARD =================
   Widget _orderReviewCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -216,42 +243,28 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.black12),
       ),
-
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          _infoRow("Name", widget.formData['name']),
-          _infoRow("No.Telephone", widget.formData['phone']),
-          _infoRow("Where", widget.formData['where']),
-          _infoRow("When", widget.formData['when']),
+          _infoRow("Name", widget.formData['name'] ?? ''),
+          _infoRow("No.Telephone", widget.formData['phone'] ?? ''),
+          _infoRow("Where", widget.formData['where'] ?? ''),
           _infoRow(
-              "Passenger", widget.formData['passengers'].toString()),
-
+            "When",
+            "${_formatDate(departDate)} - ${_formatDate(returnDate)} ($durationLabel)",
+          ),
+          _infoRow("Passenger", passengers.toString()),
           const Divider(height: 24),
-
           Text(
-            "1. Insurance Compulsory (${widget.formData['duration']})\n"
+            "1. Insurance Compulsory ($durationLabel)\n"
             "2. TM2/3\n"
             "3. TDAC",
           ),
-
           const Divider(height: 24),
-
-          _priceRow(
-            "Insurance Compulsory (${widget.formData['duration']})",
-            insurancePrice,
-          ),
-
+          _priceRow("Insurance Compulsory ($durationLabel)", insurancePrice),
           _priceRow("TM2/3", tm23Price),
-
-          _priceRow(
-            "TDAC (RM2 × ${widget.formData['passengers']})",
-            tdacPrice,
-          ),
-
+          _priceRow("TDAC (RM2 × $passengers)", tdacPrice),
           const Divider(),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -279,8 +292,10 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Text("$label: ",
-              style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            "$label: ",
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
           Expanded(child: Text(value)),
         ],
       ),
@@ -298,5 +313,9 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
         ],
       ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    return "${date.day}/${date.month}/${date.year}";
   }
 }

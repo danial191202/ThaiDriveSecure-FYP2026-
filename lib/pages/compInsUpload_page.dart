@@ -1,5 +1,5 @@
 import 'dart:io';
-//cubatrytukar
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -36,13 +36,47 @@ class _CompInsUploadPageState extends State<CompInsUploadPage> {
   File? vehicleGrantImage;
   late List<File?> passportImages;
 
+  // ✅ NEW: extracted dates
+  DateTime? departDate;
+  DateTime? returnDate;
+
   @override
   void initState() {
     super.initState();
     passportImages = List.generate(widget.passengerCount, (_) => null);
+
+    // ✅ EXTRACT DATE FROM STRING
+    _extractDatesFromWhen();
   }
 
-  // ================= SAVE IMAGE PERMANENTLY =================
+  // ================= EXTRACT DATE =================
+  void _extractDatesFromWhen() {
+    try {
+      String when = widget.whenDate;
+
+      final parts = when.split('-');
+
+      String start = parts[0].trim();
+      String end = parts[1].split('(')[0].trim();
+
+      departDate = _parseDate(start);
+      returnDate = _parseDate(end);
+    } catch (_) {
+      departDate = DateTime.now();
+      returnDate = DateTime.now().add(const Duration(days: 1));
+    }
+  }
+
+  DateTime _parseDate(String date) {
+    final parts = date.split('/');
+    return DateTime(
+      int.parse(parts[2]),
+      int.parse(parts[1]),
+      int.parse(parts[0]),
+    );
+  }
+
+  // ================= SAVE IMAGE =================
   Future<File> _saveImagePermanently(XFile image) async {
     final directory = await getApplicationDocumentsDirectory();
     final fileName =
@@ -72,7 +106,6 @@ class _CompInsUploadPageState extends State<CompInsUploadPage> {
 
   // ================= SUBMIT =================
   void submitDocuments() {
-    // 1️⃣ Validation
     if (vehicleGrantImage == null || passportImages.any((img) => img == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please upload all required documents")),
@@ -80,7 +113,6 @@ class _CompInsUploadPageState extends State<CompInsUploadPage> {
       return;
     }
 
-    // 2️⃣ Navigate to SUBMIT PAGE (correct page)
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -93,7 +125,12 @@ class _CompInsUploadPageState extends State<CompInsUploadPage> {
             'passengers': widget.passengerCount,
             'vehicleType': 'Sedan',
             'packages': ['Insurance Compulsory', 'TM2/3', 'TDAC'],
-            'totalPrice': 55,
+            'duration': widget.duration, // ✅ ADD THIS
+
+            // ✅ FIXED (NO MORE NULL)
+            'departDate': departDate ?? DateTime.now(),
+            'returnDate': returnDate ??
+                (departDate ?? DateTime.now()).add(const Duration(days: 1)),
           },
           vehicleGrantPath: vehicleGrantImage!.path,
           passportPaths: passportImages.map((file) => file!.path).toList(),

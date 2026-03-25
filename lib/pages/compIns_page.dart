@@ -48,7 +48,7 @@ class _compInsState extends State<compIns> {
 
   final List<String> durationList = [
     "9 Days",
-    "2 Weeks",
+    "19 Days",
     "1 Month",
     "3 Months",
     "6 Months",
@@ -100,6 +100,8 @@ class _compInsState extends State<compIns> {
           whenDate:
               "${formatDate(_departDate)} – ${formatDate(_returnDate)} ($totalDays days)",
           passengerCount: _passenger,
+
+          // ✅ FIXED (use correct variable)
           duration: _duration,
         ),
       ),
@@ -285,7 +287,7 @@ class _compInsState extends State<compIns> {
 
                     const SizedBox(height: 15),
 
-                    // INSURANCE DURATION
+                    // ✅ INSURANCE DURATION (MAIN FIX)
                     dropdown(
                       "Insurance Duration",
                       _duration,
