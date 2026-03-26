@@ -6,9 +6,9 @@ import 'package:path_provider/path_provider.dart';
 // ignore: depend_on_referenced_packages
 import 'package:path/path.dart' as path;
 
-import 'package:thaidrivesecure/pages/compInsSubmit_page.dart';
+import 'package:thaidrivesecure/pages/volu/voluInsSubmit_page.dart';
 
-class CompInsUploadPage extends StatefulWidget {
+class VoluInsUpload extends StatefulWidget {
   final String name;
   final String phone;
   final String where;
@@ -19,7 +19,7 @@ class CompInsUploadPage extends StatefulWidget {
   final DateTime departDate;
   final DateTime returnDate;
 
-  const CompInsUploadPage({
+  const VoluInsUpload({
     super.key,
     required this.name,
     required this.phone,
@@ -33,10 +33,10 @@ class CompInsUploadPage extends StatefulWidget {
   });
 
   @override
-  State<CompInsUploadPage> createState() => _CompInsUploadPageState();
+  State<VoluInsUpload> createState() => _VoluInsUploadState();
 }
 
-class _CompInsUploadPageState extends State<CompInsUploadPage> {
+class _VoluInsUploadState extends State<VoluInsUpload> {
   final ImagePicker _picker = ImagePicker();
 
   File? vehicleGrantImage;
@@ -88,7 +88,7 @@ class _CompInsUploadPageState extends State<CompInsUploadPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => CompInsSubmitPage(
+        builder: (_) => VoluInsSubmit(
           formData: {
             'name': widget.name,
             'phone': widget.phone,

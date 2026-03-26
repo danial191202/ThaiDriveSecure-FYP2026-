@@ -6,12 +6,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:thaidrivesecure/payment/payment_page.dart';
 
-class CompInsSubmitPage extends StatefulWidget {
+class CompInsSubmit extends StatefulWidget {
   final Map<String, dynamic> formData;
   final String vehicleGrantPath;
   final List<String> passportPaths;
 
-  const CompInsSubmitPage({
+  const CompInsSubmit({
     super.key,
     required this.formData,
     required this.vehicleGrantPath,
@@ -19,10 +19,10 @@ class CompInsSubmitPage extends StatefulWidget {
   });
 
   @override
-  State<CompInsSubmitPage> createState() => _CompInsSubmitPageState();
+  State<CompInsSubmit> createState() => _CompInsSubmitState();
 }
 
-class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
+class _CompInsSubmitState extends State<CompInsSubmit> {
   String selectedDelivery = "Take Away";
   bool isSubmitting = false;
 
@@ -137,17 +137,18 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("User not logged in")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("User not logged in")));
       return;
     }
 
     setState(() => isSubmitting = true);
 
     try {
-      final orderRef =
-          FirebaseFirestore.instance.collection('insurance_orders').doc();
+      final orderRef = FirebaseFirestore.instance
+          .collection('insurance_orders')
+          .doc();
 
       final orderId = orderRef.id;
 
@@ -206,13 +207,13 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
         errorMessage = "Submission failed: ${e.message}";
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorMessage)));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Submission failed: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Submission failed: $e")));
     } finally {
       if (mounted) setState(() => isSubmitting = false);
     }
@@ -332,10 +333,7 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Text(
-            "$label: ",
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+          Text("$label: ", style: const TextStyle(fontWeight: FontWeight.bold)),
           Expanded(child: Text(value)),
         ],
       ),
@@ -347,10 +345,7 @@ class _CompInsSubmitPageState extends State<CompInsSubmitPage> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label),
-          Text("RM $price"),
-        ],
+        children: [Text(label), Text("RM $price")],
       ),
     );
   }

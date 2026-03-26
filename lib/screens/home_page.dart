@@ -2,7 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 // Pages
-import 'package:thaidrivesecure/pages/compIns_page.dart';
+import 'package:thaidrivesecure/pages/volu/voluIns_page.dart';
+import 'package:thaidrivesecure/pages/comp/compIns_page.dart';
 import 'package:thaidrivesecure/screens/status_page.dart';
 import 'package:thaidrivesecure/screens/history_page.dart';
 import 'package:thaidrivesecure/screens/setting_page.dart';
@@ -201,7 +202,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget packageCompulsoryVoluntarySlider() {
-    final packages = ["Sedan", "Pickup/SUV", "MPV", "Motorcycle"];
+    final packages = [
+      {"title": "Sedan", "vehicleType": "Sedan"},
+      {"title": "Pickup/SUV", "vehicleType": "Pickup/SUV"},
+      {"title": "MPV", "vehicleType": "MPV"},
+      {"title": "Motorcycle", "vehicleType": "Motorcycle"},
+    ];
 
     return SizedBox(
       height: 170,
@@ -209,34 +215,53 @@ class _HomePageState extends State<HomePage> {
         scrollDirection: Axis.horizontal,
         itemCount: packages.length,
         itemBuilder: (context, index) {
-          return Container(
-            width: 150,
-            margin: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 6,
-                  offset: Offset(0, 3),
+          final package = packages[index];
+          final title = package["title"]!;
+          final vehicleType = package["vehicleType"]!;
+
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => VoluIns(vehicleType: vehicleType),
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  getVehicleIcon(packages[index]),
-                  width: 90,
-                  height: 90,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  packages[index],
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ],
+              );
+            },
+            child: Container(
+              width: 150,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 6,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    getVehicleIcon(title),
+                    width: 90,
+                    height: 90,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -245,7 +270,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget packageCompulsoryVoluntaryPlusSlider() {
-    final packages = ["Sedan", "Pickup/SUV", "MPV" , "Motorcycle"];
+    final packages = [
+      {"title": "Sedan", "vehicleType": "Sedan"},
+      {"title": "Pickup/SUV", "vehicleType": "Pickup/SUV"},
+      {"title": "MPV", "vehicleType": "MPV"},
+      {"title": "Motorcycle", "vehicleType": "Motorcycle"},
+    ];
 
     return SizedBox(
       height: 170,
@@ -253,34 +283,53 @@ class _HomePageState extends State<HomePage> {
         scrollDirection: Axis.horizontal,
         itemCount: packages.length,
         itemBuilder: (context, index) {
-          return Container(
-            width: 150,
-            margin: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 6,
-                  offset: Offset(0, 3),
+          final package = packages[index];
+          final title = package["title"]!;
+          final vehicleType = package["vehicleType"]!;
+
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CompIns(vehicleType: vehicleType),
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  getVehicleIcon(packages[index]),
-                  width: 90,
-                  height: 90,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  packages[index],
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ],
+              );
+            },
+            child: Container(
+              width: 150,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 6,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    getVehicleIcon(title),
+                    width: 90,
+                    height: 90,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },

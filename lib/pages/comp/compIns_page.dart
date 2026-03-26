@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:thaidrivesecure/pages/compInsUpload_page.dart';
+import 'package:thaidrivesecure/pages/comp/compInsUpload_page.dart';
 
 class CompIns extends StatefulWidget {
   final String vehicleType;
 
-  const CompIns({
-    super.key,
-    required this.vehicleType,
-  });
+  const CompIns({super.key, required this.vehicleType});
 
   @override
   State<CompIns> createState() => _CompInsState();
@@ -51,21 +48,10 @@ class _CompInsState extends State<CompIns> {
 
   List<String> get durationList {
     if (widget.vehicleType == "Motorcycle") {
-      return [
-        "3 Months",
-        "6 Months",
-        "1 Year",
-      ];
+      return ["3 Months", "6 Months", "1 Year"];
     }
 
-    return [
-      "9 Days",
-      "19 Days",
-      "1 Month",
-      "3 Months",
-      "6 Months",
-      "1 Year",
-    ];
+    return ["9 Days", "19 Days", "1 Month", "3 Months", "6 Months", "1 Year"];
   }
 
   String formatDate(DateTime? date) {
@@ -139,7 +125,7 @@ class _CompInsState extends State<CompIns> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => CompInsUploadPage(
+        builder: (_) => CompInsUpload(
           name: _nameController.text.trim(),
           phone: _phoneController.text.trim(),
           where: "$_from → $_to",
@@ -227,8 +213,9 @@ class _CompInsState extends State<CompIns> {
                       keyboard: TextInputType.phone,
                       maxLength: 11,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      validator: (v) =>
-                          v == null || v.length < 8 ? "Valid phone required" : null,
+                      validator: (v) => v == null || v.length < 8
+                          ? "Valid phone required"
+                          : null,
                     ),
 
                     const SizedBox(height: 20),
@@ -270,8 +257,9 @@ class _CompInsState extends State<CompIns> {
                                 context: context,
                                 initialDate: DateTime.now(),
                                 firstDate: DateTime.now(),
-                                lastDate:
-                                    DateTime.now().add(const Duration(days: 365)),
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 365),
+                                ),
                               );
 
                               if (picked != null) {
@@ -292,7 +280,9 @@ class _CompInsState extends State<CompIns> {
                                 ? () {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text("Select depart date first"),
+                                        content: Text(
+                                          "Select depart date first",
+                                        ),
                                       ),
                                     );
                                   }
@@ -301,8 +291,9 @@ class _CompInsState extends State<CompIns> {
                                       context: context,
                                       initialDate: _departDate!,
                                       firstDate: _departDate!,
-                                      lastDate: DateTime.now()
-                                          .add(const Duration(days: 365)),
+                                      lastDate: DateTime.now().add(
+                                        const Duration(days: 365),
+                                      ),
                                     );
 
                                     if (picked != null) {
@@ -342,7 +333,9 @@ class _CompInsState extends State<CompIns> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF163B6D),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 70, vertical: 16),
+                              horizontal: 70,
+                              vertical: 16,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),
@@ -353,14 +346,17 @@ class _CompInsState extends State<CompIns> {
                                   width: 24,
                                   height: 24,
                                   child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: Colors.white),
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
                                 )
                               : const Text(
                                   "Next",
                                   style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600),
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                         ),
                       ),
@@ -414,10 +410,12 @@ class _CompInsState extends State<CompIns> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       ),
       items: items
-          .map((e) => DropdownMenuItem(
-                value: e,
-                child: Text(e, overflow: TextOverflow.ellipsis),
-              ))
+          .map(
+            (e) => DropdownMenuItem(
+              value: e,
+              child: Text(e, overflow: TextOverflow.ellipsis),
+            ),
+          )
           .toList(),
       onChanged: onChanged,
     );
