@@ -52,7 +52,7 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
         switch (durationLabel) {
           case "9 Days":
             return 30;
-          case "19 Days":
+          case "18 Days":
             return 45;
           case "1 Month":
             return 65;
@@ -70,7 +70,7 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
         switch (durationLabel) {
           case "9 Days":
             return 30;
-          case "19 Days":
+          case "18 Days":
             return 45;
           case "1 Month":
             return 65;
@@ -101,7 +101,7 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
         switch (durationLabel) {
           case "9 Days":
             return 25;
-          case "19 Days":
+          case "18 Days":
             return 35;
           case "1 Month":
             return 45;

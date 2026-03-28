@@ -6,12 +6,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:thaidrivesecure/payment/payment_page.dart';
 
-class VoluInsSubmit extends StatefulWidget {
+class VoluPlusInsSubmit extends StatefulWidget {
   final Map<String, dynamic> formData;
   final String vehicleGrantPath;
   final List<String> passportPaths;
 
-  const VoluInsSubmit({
+  const VoluPlusInsSubmit({
     super.key,
     required this.formData,
     required this.vehicleGrantPath,
@@ -19,10 +19,10 @@ class VoluInsSubmit extends StatefulWidget {
   });
 
   @override
-  State<VoluInsSubmit> createState() => _VoluInsSubmitState();
+  State<VoluPlusInsSubmit> createState() => _VoluPlusInsSubmitState();
 }
 
-class _VoluInsSubmitState extends State<VoluInsSubmit> {
+class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
   String selectedDelivery = "Take Away";
   bool isSubmitting = false;
 

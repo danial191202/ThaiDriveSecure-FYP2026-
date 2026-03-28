@@ -8,7 +8,7 @@ import 'package:path/path.dart' as path;
 
 import 'package:thaidrivesecure/pages/volu/voluInsSubmit_page.dart';
 
-class VoluInsUpload extends StatefulWidget {
+class VoluPlusInsUpload extends StatefulWidget {
   final String name;
   final String phone;
   final String where;
@@ -19,7 +19,7 @@ class VoluInsUpload extends StatefulWidget {
   final DateTime departDate;
   final DateTime returnDate;
 
-  const VoluInsUpload({
+  const VoluPlusInsUpload({
     super.key,
     required this.name,
     required this.phone,
@@ -33,10 +33,10 @@ class VoluInsUpload extends StatefulWidget {
   });
 
   @override
-  State<VoluInsUpload> createState() => _VoluInsUploadState();
+  State<VoluPlusInsUpload> createState() => _VoluPlusInsUploadState();
 }
 
-class _VoluInsUploadState extends State<VoluInsUpload> {
+class _VoluPlusInsUploadState extends State<VoluPlusInsUpload> {
   final ImagePicker _picker = ImagePicker();
 
   File? vehicleGrantImage;
@@ -88,7 +88,7 @@ class _VoluInsUploadState extends State<VoluInsUpload> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => VoluInsSubmit(
+        builder: (_) => VoluPlusInsSubmit(
           formData: {
             'name': widget.name,
             'phone': widget.phone,
