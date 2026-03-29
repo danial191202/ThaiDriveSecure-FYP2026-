@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:thaidrivesecure/addOn/map_launcher.dart';
 
 // Pages
 import 'package:thaidrivesecure/pages/volu/voluIns_page.dart';
@@ -113,11 +114,14 @@ class _HomePageState extends State<HomePage> {
               imagePath: "assets/need.png",
             ),
 
-            infoCard(
-              title: "Where we're located?",
-              description:
-                  "The map helps you see where we’re located and makes it easy to find us.",
-              imagePath: "assets/map.png",
+            GestureDetector(
+              onTap: MapLauncher.openGoogleMaps,
+              child: infoCard(
+                title: "Where we're located?",
+                description:
+                    "The map helps you see where we’re located and makes it easy to find us.",
+                imagePath: "assets/map.png",
+              ),
             ),
 
             infoCard(

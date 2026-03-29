@@ -51,17 +51,17 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
       case "Pickup/SUV":
         switch (durationLabel) {
           case "9 Days":
-            return 30;
-          case "19 Days":
-            return 45;
-          case "1 Month":
-            return 65;
-          case "3 Months":
             return 90;
+          case "19 Days":
+            return 120;
+          case "1 Month":
+            return 160;
+          case "3 Months":
+            return 240;
           case "6 Months":
-            return 135;
+            return 340;
           case "1 Year":
-            return 220;
+            return 550;
           default:
             return 0;
         }
@@ -69,17 +69,17 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
       case "MPV":
         switch (durationLabel) {
           case "9 Days":
-            return 30;
-          case "19 Days":
-            return 45;
-          case "1 Month":
-            return 65;
-          case "3 Months":
             return 90;
+          case "19 Days":
+            return 120;
+          case "1 Month":
+            return 160;
+          case "3 Months":
+            return 240;
           case "6 Months":
-            return 135;
+            return 340;
           case "1 Year":
-            return 220;
+            return 550;
           default:
             return 0;
         }
@@ -87,11 +87,11 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
       case "Motorcycle":
         switch (durationLabel) {
           case "3 Months":
-            return 38;
+            return 70;
           case "6 Months":
-            return 55;
+            return 105;
           case "1 Year":
-            return 90;
+            return 180;
           default:
             return 0;
         }
@@ -100,17 +100,17 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
       default:
         switch (durationLabel) {
           case "9 Days":
-            return 25;
+            return 75;
           case "19 Days":
-            return 35;
-          case "1 Month":
-            return 45;
-          case "3 Months":
-            return 65;
-          case "6 Months":
             return 95;
+          case "1 Month":
+            return 120;
+          case "3 Months":
+            return 170;
+          case "6 Months":
+            return 240;
           case "1 Year":
-            return 150;
+            return 420;
           default:
             return 0;
         }
