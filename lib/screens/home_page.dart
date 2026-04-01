@@ -62,7 +62,10 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text("Home Page", style: TextStyle(color: Colors.black)),
+        title: const Text(
+          "Home Page",
+          style: TextStyle(color: Colors.black),
+        ),
         centerTitle: true,
       ),
       bottomNavigationBar: bottomNav(),
@@ -136,205 +139,130 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ================= PACKAGE SLIDER =================
-
+  // ================= COMPULSORY =================
   Widget packageCompulsorySlider() {
     final packages = [
-      {"title": "Sedan", "vehicleType": "Sedan"},
-      {"title": "Pickup/SUV", "vehicleType": "Pickup/SUV"},
-      {"title": "MPV", "vehicleType": "MPV"},
-      {"title": "Motorcycle", "vehicleType": "Motorcycle"},
+      {
+        "title": "Sedan",
+        "vehicleType": "Sedan",
+        "image": "assets/1sedancar.png",
+      },
+      {
+        "title": "Pickup/SUV",
+        "vehicleType": "Pickup/SUV",
+        "image": "assets/1suv.png",
+      },
+      {
+        "title": "MPV",
+        "vehicleType": "MPV",
+        "image": "assets/1mpv.png",
+      },
+      {
+        "title": "Motorcycle",
+        "vehicleType": "Motorcycle",
+        "image": "assets/1motorcycle.png",
+      },
     ];
 
-    return SizedBox(
-      height: 170,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: packages.length,
-        itemBuilder: (context, index) {
-          final package = packages[index];
-          final title = package["title"]!;
-          final vehicleType = package["vehicleType"]!;
-
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CompIns(vehicleType: vehicleType),
-                ),
-              );
-            },
-            child: Container(
-              width: 150,
-              margin: const EdgeInsets.only(right: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 6,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    getVehicleIcon(title),
-                    width: 90,
-                    height: 90,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+    return buildVehicleSlider(
+      packages: packages,
+      borderColor: const Color(0xFF10AAA2), // Teal
+      onTapBuilder: (vehicleType) => CompIns(vehicleType: vehicleType),
     );
   }
 
+  // ================= VOLUNTARY =================
   Widget packageCompulsoryVoluntarySlider() {
     final packages = [
-      {"title": "Sedan", "vehicleType": "Sedan"},
-      {"title": "Pickup/SUV", "vehicleType": "Pickup/SUV"},
-      {"title": "MPV", "vehicleType": "MPV"},
-      {"title": "Motorcycle", "vehicleType": "Motorcycle"},
+      {
+        "title": "Sedan",
+        "vehicleType": "Sedan",
+        "image": "assets/2sedan.png",
+      },
+      {
+        "title": "Pickup/SUV",
+        "vehicleType": "Pickup/SUV",
+        "image": "assets/2suv.png",
+      },
+      {
+        "title": "MPV",
+        "vehicleType": "MPV",
+        "image": "assets/2mpv.png",
+      },
+      {
+        "title": "Motorcycle",
+        "vehicleType": "Motorcycle",
+        "image": "assets/2motor.png",
+      },
     ];
 
-    return SizedBox(
-      height: 170,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: packages.length,
-        itemBuilder: (context, index) {
-          final package = packages[index];
-          final title = package["title"]!;
-          final vehicleType = package["vehicleType"]!;
-
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => VoluIns(vehicleType: vehicleType),
-                ),
-              );
-            },
-            child: Container(
-              width: 150,
-              margin: const EdgeInsets.only(right: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 6,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    getVehicleIcon(title),
-                    width: 90,
-                    height: 90,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+    return buildVehicleSlider(
+      packages: packages,
+      borderColor: const Color(0xFFF5851E), // Orange
+      onTapBuilder: (vehicleType) => VoluIns(vehicleType: vehicleType),
     );
   }
 
+  // ================= VOLUNTARY PLUS =================
   Widget packageCompulsoryVoluntaryPlusSlider() {
     final packages = [
-      {"title": "Sedan", "vehicleType": "Sedan"},
-      {"title": "Pickup/SUV", "vehicleType": "Pickup/SUV"},
-      {"title": "MPV", "vehicleType": "MPV"},
-      {"title": "Motorcycle", "vehicleType": "Motorcycle"},
+      {
+        "title": "Sedan",
+        "vehicleType": "Sedan",
+        "image": "assets/3sedan.png",
+      },
+      {
+        "title": "Pickup/SUV",
+        "vehicleType": "Pickup/SUV",
+        "image": "assets/3suv.png",
+      },
+      {
+        "title": "MPV",
+        "vehicleType": "MPV",
+        "image": "assets/3mpv.png",
+      },
+      {
+        "title": "Motorcycle",
+        "vehicleType": "Motorcycle",
+        "image": "assets/3motor.png",
+      },
     ];
 
+    return buildVehicleSlider(
+      packages: packages,
+      borderColor: const Color(0xFFE63545), // Red
+      onTapBuilder: (vehicleType) => VoluPlusIns(vehicleType: vehicleType),
+    );
+  }
+
+  // ================= REUSABLE VEHICLE SLIDER =================
+  Widget buildVehicleSlider({
+    required List<Map<String, String>> packages,
+    required Color borderColor,
+    required Widget Function(String vehicleType) onTapBuilder,
+  }) {
     return SizedBox(
-      height: 170,
+      height: 100,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: packages.length,
         itemBuilder: (context, index) {
           final package = packages[index];
-          final title = package["title"]!;
           final vehicleType = package["vehicleType"]!;
+          final imagePath = package["image"]!;
 
           return GestureDetector(
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => VoluPlusIns(vehicleType: vehicleType),
+                  builder: (_) => onTapBuilder(vehicleType),
                 ),
               );
             },
-            child: Container(
-              width: 150,
-              margin: const EdgeInsets.only(right: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 6,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    getVehicleIcon(title),
-                    width: 90,
-                    height: 90,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
-              ),
+            child: pictureOnlyVehicleCard(
+              imagePath: imagePath,
+              borderColor: borderColor,
             ),
           );
         },
@@ -342,29 +270,51 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ================= ICON =================
-
-  String getVehicleIcon(String type) {
-    switch (type) {
-      case "Sedan":
-        return "assets/sedan1.png";
-      case "Pickup/SUV":
-        return "assets/suv.png";
-      case "MPV":
-        return "assets/mpv.png";
-      case "Motorcycle":
-        return "assets/motorcycle.png";
-      default:
-        return "assets/sedan1.png";
-    }
+  // ================= PICTURE ONLY CARD =================
+  Widget pictureOnlyVehicleCard({
+    required String imagePath,
+    required Color borderColor,
+  }) {
+    return Container(
+      width: 180,
+      height: 110,
+      margin: const EdgeInsets.only(right: 14),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: borderColor,
+          width: 1.2,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D000000),
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Image.asset(
+          imagePath,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+        ),
+      ),
+    );
   }
 
   // ================= UI HELPERS =================
-
   Widget sectionTitle(String text) {
     return Text(
       text,
-      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      style: const TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.bold,
+        color: Colors.black87,
+      ),
     );
   }
 
@@ -417,7 +367,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   // ================= BOTTOM NAV =================
-
   Widget bottomNav() {
     return BottomNavigationBar(
       backgroundColor: const Color(0xFF163B6D),
@@ -468,6 +417,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+// ================= PROMO CARD =================
 class PromotionCard extends StatelessWidget {
   final String imagePath;
 
@@ -478,7 +428,11 @@ class PromotionCard extends StatelessWidget {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
-      child: Image.asset(imagePath, fit: BoxFit.cover, width: double.infinity),
+      child: Image.asset(
+        imagePath,
+        fit: BoxFit.cover,
+        width: double.infinity,
+      ),
     );
   }
 }
