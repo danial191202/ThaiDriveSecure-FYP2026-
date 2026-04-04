@@ -119,7 +119,8 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
 
   int get tdacPrice => passengers * 2;
   int get tm23Price => 8;
-  int get totalPrice => insurancePrice + tdacPrice + tm23Price;
+  double get totalPrice =>
+      (insurancePrice + tdacPrice + tm23Price).toDouble();
 
   // ================= IMAGE UPLOAD =================
   Future<String> _uploadImage(File file, String storagePath) async {
@@ -191,7 +192,17 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
 
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const PaymentPage()),
+        MaterialPageRoute(
+          builder: (_) => PaymentPage(
+            totalAmount: totalPrice,
+            orderId: "Q1001",
+            selectedItems: [
+              if (insurancePrice > 0) "Insurance Package",
+              if (tdacPrice > 0) "TDAC Package",
+              if (tm23Price > 0) "TM23 Package",
+            ],
+          ),
+        ),
       );
     } on FirebaseException catch (e) {
       String errorMessage = "Submission failed";

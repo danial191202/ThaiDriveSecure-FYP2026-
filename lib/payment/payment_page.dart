@@ -9,7 +9,16 @@ import 'receipt_page.dart';
 import 'package:thaidrivesecure/screens/home_page.dart';
 
 class PaymentPage extends StatefulWidget {
-  const PaymentPage({super.key});
+  final double totalAmount;
+  final String orderId;
+  final List<String> selectedItems;
+
+  const PaymentPage({
+    super.key,
+    required this.totalAmount,
+    required this.orderId,
+    required this.selectedItems,
+  });
 
   @override
   State<PaymentPage> createState() => _PaymentPageState();
@@ -312,7 +321,7 @@ class _PaymentPageState extends State<PaymentPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          "Secure Payment",
+          "Payment",
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w700,
@@ -335,9 +344,11 @@ class _PaymentPageState extends State<PaymentPage> {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              "RM 120.00",
-              style: TextStyle(
+
+            /// DYNAMIC TOTAL
+            Text(
+              "RM ${widget.totalAmount.toStringAsFixed(2)}",
+              style: const TextStyle(
                 fontSize: 30,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
@@ -547,7 +558,11 @@ class _PaymentPageState extends State<PaymentPage> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const ReceiptPage(),
+                          builder: (_) => ReceiptPage(
+                            totalAmount: widget.totalAmount,
+                            orderId: widget.orderId,
+                            selectedItems: widget.selectedItems,
+                          ),
                           ),
                         );
                       }
