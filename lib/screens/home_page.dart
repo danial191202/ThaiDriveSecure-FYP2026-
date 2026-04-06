@@ -62,11 +62,11 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          "Home Page",
-          style: TextStyle(color: Colors.black),
-        ),
         centerTitle: true,
+        title: Image.asset(
+          "assets/tsdLogoPjg.png", // 🔥 change to your logo file
+          height: 40,
+        ),
       ),
       bottomNavigationBar: bottomNav(),
       body: SingleChildScrollView(
@@ -106,6 +106,13 @@ class _HomePageState extends State<HomePage> {
             sectionTitle("Compulsory & Voluntary+ Package"),
             const SizedBox(height: 12),
             packageCompulsoryVoluntaryPlusSlider(),
+
+            const SizedBox(height: 24),
+
+            // ================= ADD ON SERVICES =================
+            sectionTitle("Add On Services"),
+            const SizedBox(height: 12),
+            addOnServicesSlider(),
 
             const SizedBox(height: 24),
 
@@ -232,6 +239,94 @@ class _HomePageState extends State<HomePage> {
       packages: packages,
       borderColor: const Color(0xFFE63545), // Red
       onTapBuilder: (vehicleType) => VoluPlusIns(vehicleType: vehicleType),
+    );
+  }
+
+  // ================= ADD ON SERVICES =================
+  Widget addOnServicesSlider() {
+    final services = [
+      {
+        "title": "Adapter",
+        "image": "assets/adapter.png",
+      },
+      {
+        "title": "Authorize Letter",
+        "image": "assets/authorizeLetter.png",
+      },
+      {
+        "title": "Personal Ins",
+        "image": "assets/Personal_Insurance.png",
+      },
+      {
+        "title": "TM2/3",
+        "image": "assets/TM23.png",
+      },
+      {
+        "title": "TDAC",
+        "image": "assets/TDAC.png",
+      },
+      {
+        "title": "Towing",
+        "image": "assets/towing.png",
+      },
+      {
+        "title": "sim",
+        "image": "assets/sim.jpg",
+      },
+    ];
+
+    return SizedBox(
+      height: 125,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: services.length,
+        itemBuilder: (context, index) {
+          final item = services[index];
+
+          return GestureDetector(
+            onTap: () {
+              // TODO: later can navigate to add-on detail page
+            },
+            child: Container(
+              width: 150,
+              margin: const EdgeInsets.only(right: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Image.asset(
+                      item["image"]!,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    item["title"]!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 

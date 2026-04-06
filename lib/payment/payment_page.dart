@@ -373,7 +373,7 @@ class _PaymentPageState extends State<PaymentPage> {
               ),
               child: Image.asset(
                 "assets/qr.png",
-                height: 280,
+                height: 258,
                 fit: BoxFit.contain,
               ),
             ),
@@ -392,8 +392,8 @@ class _PaymentPageState extends State<PaymentPage> {
 
             /// DOWNLOAD QR BUTTON
             SizedBox(
-              width: 260,
-              height: 50,
+              width: 216,
+              height: 36,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFB8CCEC),
@@ -440,8 +440,8 @@ class _PaymentPageState extends State<PaymentPage> {
 
             /// UPLOAD RECEIPT BUTTON
             SizedBox(
-              width: 290,
-              height: 54,
+              width: 216,
+              height: 36,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF163B6D),

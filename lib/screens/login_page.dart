@@ -196,7 +196,7 @@ class _LoginPageState extends State<LoginPage> {
               /// Footer Logo
               Center(
                 child: Image.asset(
-                  'assets/tds_memanjang logo.png',
+                  'assets/tsdLogoPjg.png',
                   width: 300,
                   fit: BoxFit.contain,
                 ),
