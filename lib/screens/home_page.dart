@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:thaidrivesecure/addOn/map_launcher.dart';
 
 // Pages
+import 'package:thaidrivesecure/screens/needs.dart';
 import 'package:thaidrivesecure/pages/volu/voluIns_page.dart';
 import 'package:thaidrivesecure/pages/comp/compIns_page.dart';
 import 'package:thaidrivesecure/screens/status_page.dart';
@@ -117,12 +118,22 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 24),
 
             // ================= INFO =================
-            infoCard(
+            GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const WhatWeNeedPage(),
+                ),
+              );
+            },
+            child: infoCard(
               title: "What we need?",
               description:
                   "To travel to Thailand from Malaysia, you need a valid passport, vehicle documents and insurance.",
               imagePath: "assets/need.png",
             ),
+          ),
 
             GestureDetector(
               onTap: MapLauncher.openGoogleMaps,
