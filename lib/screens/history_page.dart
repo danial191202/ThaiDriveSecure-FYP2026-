@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -10,54 +12,9 @@ class HistoryPage extends StatefulWidget {
 class _HistoryPageState extends State<HistoryPage> {
   String selectedTab = "Applied";
 
-  final List<Map<String, dynamic>> historyData = [
-    {
-      "orderId": "#001",
-      "package": "Package Compulsory (Sedan)",
-      "date": "26/06/2026",
-      "duration": "7 Days",
-      "hasTDAC": true,
-      "hasTM": true,
-      "price": "RM35",
-      "status": "Applied",
-    },
-    {
-      "orderId": "#002",
-      "package": "Package Compulsory (Sedan)",
-      "date": "30/06/2026",
-      "duration": "10 Days",
-      "hasTDAC": true,
-      "hasTM": true,
-      "price": "RM45",
-      "status": "Applied",
-    },
-    {
-      "orderId": "#003",
-      "package": "Package Compulsory (Sedan)",
-      "date": "26/06/2026",
-      "duration": "7 Days",
-      "hasTDAC": true,
-      "hasTM": true,
-      "price": "RM35",
-      "status": "Pending",
-    },
-    {
-      "orderId": "#004",
-      "package": "Package Compulsory (Sedan)",
-      "date": "26/06/2026",
-      "duration": "7 Days",
-      "hasTDAC": true,
-      "hasTM": true,
-      "price": "RM35",
-      "status": "Completed",
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final filteredData = historyData
-        .where((item) => item["status"] == selectedTab)
-        .toList();
+    final currentUser = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       backgroundColor: const Color(0xFFEAF3F8),
@@ -77,51 +34,112 @@ class _HistoryPageState extends State<HistoryPage> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 14),
+      body: currentUser == null
+          ? const Center(
+              child: Text(
+                "Please log in to view your order history.",
+                style: TextStyle(fontSize: 16),
+              ),
+            )
+          : Column(
+              children: [
+                const SizedBox(height: 14),
 
-          /// TOP TAB BAR
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
+                /// TOP TAB BAR
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        buildTab("Applied"),
+                        buildTab("Pending"),
+                        buildTab("Completed"),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  buildTab("Applied"),
-                  buildTab("Pending"),
-                  buildTab("Completed"),
-                ],
-              ),
-            ),
-          ),
+                ),
 
-          const SizedBox(height: 18),
+                const SizedBox(height: 18),
 
-          /// CARD LIST
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: filteredData.length,
-              itemBuilder: (context, index) {
-                final item = filteredData[index];
-                return buildHistoryCard(item);
-              },
+                /// FIRESTORE CARD LIST
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('insurance_orders')
+                        .where('userId', isEqualTo: currentUser.uid)
+                        .orderBy('receiptUploadedAt', descending: true)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text(
+                            "Error loading history:\n${snapshot.error}",
+                            textAlign: TextAlign.center,
+                          ),
+                        );
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            "No previous orders found.",
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        );
+                      }
+
+                      final docs = snapshot.data!.docs;
+
+                      /// Filter by tab
+                      final filteredDocs = docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final status =
+                            _mapFirestoreStatusToTab(data['paymentStatus']);
+                        return status == selectedTab;
+                      }).toList();
+
+                      if (filteredDocs.isEmpty) {
+                        return Center(
+                          child: Text(
+                            "No $selectedTab orders found.",
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: filteredDocs.length,
+                        itemBuilder: (context, index) {
+                          final item = filteredDocs[index].data()
+                              as Map<String, dynamic>;
+                          return buildHistoryCard(item);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -157,9 +175,40 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
+  /// ================= STATUS MAPPER =================
+  String _mapFirestoreStatusToTab(String? paymentStatus) {
+    if (paymentStatus == null) return "Applied";
+
+    switch (paymentStatus.toLowerCase()) {
+      case "pending verification":
+      case "payment submitted":
+        return "Pending";
+      case "verified":
+      case "completed":
+        return "Completed";
+      default:
+        return "Applied";
+    }
+  }
+
+  /// ================= PACKAGE NAME BUILDER =================
+  String _buildPackageName(List<dynamic>? selectedItems) {
+    if (selectedItems == null || selectedItems.isEmpty) {
+      return "Insurance Package";
+    }
+
+    if (selectedItems.contains("Insurance Compulsory")) {
+      return "Package Compulsory";
+    }
+
+    return selectedItems.join(", ");
+  }
+
   /// ================= CARD =================
   Widget buildHistoryCard(Map<String, dynamic> item) {
-    final String status = item["status"];
+    final String firestoreStatus = item["paymentStatus"] ?? "Applied";
+    final String status = _mapFirestoreStatusToTab(firestoreStatus);
+
     Color badgeColor;
     Color badgeTextColor;
 
@@ -181,6 +230,23 @@ class _HistoryPageState extends State<HistoryPage> {
       buttonText = "View Order";
     } else {
       buttonText = "View Receipt";
+    }
+
+    final List<dynamic> selectedItems = item["selectedItems"] ?? [];
+    final bool hasTDAC = selectedItems.contains("TDAC");
+    final bool hasTM = selectedItems.contains("TM2/3");
+
+    final String packageName = _buildPackageName(selectedItems);
+    final String orderId = item["orderId"] ?? "-";
+    final double totalPrice =
+        double.tryParse(item["totalAmount"].toString()) ?? 0.0;
+
+    String dateText = "-";
+    final uploadedAt = item["receiptUploadedAt"];
+    if (uploadedAt is Timestamp) {
+      final date = uploadedAt.toDate();
+      dateText =
+          "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
     }
 
     return Container(
@@ -209,7 +275,7 @@ class _HistoryPageState extends State<HistoryPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Order ${item["orderId"]}",
+                "Order $orderId",
                 style: const TextStyle(
                   color: Color(0xFF163B6D),
                   fontWeight: FontWeight.bold,
@@ -245,7 +311,7 @@ class _HistoryPageState extends State<HistoryPage> {
             children: [
               Expanded(
                 child: Text(
-                  item["package"],
+                  packageName,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -254,7 +320,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 ),
               ),
               Text(
-                item["date"],
+                dateText,
                 style: const TextStyle(
                   fontSize: 13,
                   color: Colors.grey,
@@ -270,16 +336,16 @@ class _HistoryPageState extends State<HistoryPage> {
             children: [
               const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
               const SizedBox(width: 8),
-              Text(
-                item["duration"],
-                style: const TextStyle(color: Colors.black54),
+              const Text(
+                "Order Record",
+                style: TextStyle(color: Colors.black54),
               ),
               const SizedBox(width: 32),
               const Icon(Icons.receipt_long, size: 18, color: Colors.grey),
               const SizedBox(width: 8),
-              const Text(
-                "TDAC",
-                style: TextStyle(color: Colors.black54),
+              Text(
+                hasTDAC ? "TDAC" : "No TDAC",
+                style: const TextStyle(color: Colors.black54),
               ),
             ],
           ),
@@ -287,13 +353,13 @@ class _HistoryPageState extends State<HistoryPage> {
           const SizedBox(height: 14),
 
           /// ICON ROW 2
-          const Row(
+          Row(
             children: [
-              Icon(Icons.description, size: 18, color: Colors.grey),
-              SizedBox(width: 8),
+              const Icon(Icons.description, size: 18, color: Colors.grey),
+              const SizedBox(width: 8),
               Text(
-                "TM2/TM3 Documents",
-                style: TextStyle(color: Colors.black54),
+                hasTM ? "TM2/TM3 Documents" : "No TM2/TM3",
+                style: const TextStyle(color: Colors.black54),
               ),
             ],
           ),
@@ -307,7 +373,7 @@ class _HistoryPageState extends State<HistoryPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                item["price"],
+                "RM ${totalPrice.toStringAsFixed(2)}",
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -328,7 +394,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   elevation: 0,
                 ),
                 onPressed: () {
-                  // TODO: later add action
+                  // TODO: later add navigation
                 },
                 child: Text(
                   buttonText,

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -109,7 +110,7 @@ class _PaymentPageState extends State<PaymentPage> {
           .collection('insurance_orders')
           .doc(widget.orderId)
           .set({
-        'orderId': widget.orderId,
+        'userId': FirebaseAuth.instance.currentUser?.uid,
         'totalAmount': widget.totalAmount,
         'selectedItems': widget.selectedItems,
         'receiptUrl': downloadUrl,
