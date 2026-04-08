@@ -63,7 +63,6 @@ class _HistoryPageState extends State<HistoryPage> {
                     ),
                     child: Row(
                       children: [
-                        buildTab("Applied"),
                         buildTab("Pending"),
                         buildTab("Completed"),
                       ],

@@ -12,15 +12,13 @@ import 'receipt_page.dart';
 import 'package:thaidrivesecure/screens/home_page.dart';
 
 class PaymentPage extends StatefulWidget {
-  final double totalAmount;
-  final String orderId;
-  final List<String> selectedItems;
+  final String vehicleType;
+  final String packageType;
 
   const PaymentPage({
     super.key,
-    required this.totalAmount,
-    required this.orderId,
-    required this.selectedItems,
+    required this.vehicleType,
+    required this.packageType,
   });
 
   @override
@@ -34,6 +32,137 @@ class _PaymentPageState extends State<PaymentPage> {
   bool _isUploading = false;
   String? _receiptUrl;
   bool _receiptSubmitted = false;
+
+  String? _generatedOrderId;
+  String? _orderDocId;
+
+  /// =========================
+  /// AUTO BUILD ITEMS + PRICE
+  /// =========================
+  List<String> get selectedItems {
+    return [
+      widget.packageType,
+      widget.vehicleType,
+      "Thailand Insurance",
+    ];
+  }
+
+  double get totalAmount {
+    if (widget.packageType == "Compulsory") {
+      switch (widget.vehicleType) {
+        case "Pickup/SUV":
+          return 55.00;
+        case "MPV":
+          return 60.00;
+        case "Motorcycle":
+          return 35.00;
+        case "Sedan":
+          return 45.00;
+        default:
+          return 50.00;
+      }
+    }
+
+    if (widget.packageType == "Compulsory & Voluntary") {
+      switch (widget.vehicleType) {
+        case "Sedan":
+          return 95.00;
+        case "Pickup/SUV":
+          return 110.00;
+        case "MPV":
+          return 120.00;
+        default:
+          return 100.00;
+      }
+    }
+
+    if (widget.packageType == "Compulsory & Voluntary+") {
+      switch (widget.vehicleType) {
+        case "Sedan":
+          return 135.00;
+        case "Pickup/SUV":
+          return 150.00;
+        case "MPV":
+          return 165.00;
+        default:
+          return 140.00;
+      }
+    }
+
+    return 50.00;
+  }
+
+  /// =========================
+  /// GENERATE TDS ORDER ID
+  /// =========================
+  Future<String> _generateOrderId() async {
+    final counterRef =
+        FirebaseFirestore.instance.collection('counters').doc('orders');
+
+    return FirebaseFirestore.instance.runTransaction((transaction) async {
+      final snapshot = await transaction.get(counterRef);
+
+      int newCount = 1;
+      if (snapshot.exists) {
+        newCount = (snapshot.data()?['count'] ?? 0) + 1;
+      }
+
+      transaction.set(counterRef, {'count': newCount});
+
+      return 'TDS-${newCount.toString().padLeft(3, '0')}';
+    });
+  }
+
+  /// =========================
+  /// CREATE ORDER IF NEEDED
+  /// =========================
+  Future<void> _createOrderIfNeeded() async {
+    if (_orderDocId != null && _generatedOrderId != null) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw Exception("User not logged in");
+
+    final generatedOrderId = await _generateOrderId();
+
+    final docRef = await FirebaseFirestore.instance.collection('orders').add({
+      'orderId': generatedOrderId,
+      'userId': user.uid,
+      'vehicleType': widget.vehicleType,
+      'packageType': widget.packageType,
+      'selectedItems': selectedItems,
+      'totalAmount': totalAmount,
+      'paymentMethod': 'QR / Receipt Upload',
+      'paymentStatus': 'Pending Receipt',
+      'status': 'Order Pending',
+      'createdAt': FieldValue.serverTimestamp(),
+      'statusHistory': [
+        {
+          'step': 'Order Pending',
+          'completed': true,
+          'time': DateTime.now().toIso8601String(),
+        },
+        {
+          'step': 'Order Received',
+          'completed': false,
+        },
+        {
+          'step': 'In Process',
+          'completed': false,
+        },
+        {
+          'step': 'On The Way',
+          'completed': false,
+        },
+        {
+          'step': 'Already Pickup',
+          'completed': false,
+        },
+      ],
+    });
+
+    _generatedOrderId = generatedOrderId;
+    _orderDocId = docRef.id;
+  }
 
   /// =========================
   /// DOWNLOAD QR CODE
@@ -82,8 +211,7 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   /// =========================
-  /// UPLOAD TO FIREBASE STORAGE
-  /// DIRECTLY INTO receipt/ FOLDER
+  /// UPLOAD RECEIPT TO FIREBASE
   /// =========================
   Future<void> uploadReceiptToFirebase() async {
     if (_receiptFile == null) return;
@@ -93,26 +221,21 @@ class _PaymentPageState extends State<PaymentPage> {
         _isUploading = true;
       });
 
-      /// Unique filename
-      final fileName =
-          'receipt_${widget.orderId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await _createOrderIfNeeded();
 
-      /// IMPORTANT:
-      /// This uploads directly into Firebase Storage -> receipt/
+      final fileName =
+          'receipt_${_generatedOrderId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
       final storageRef = FirebaseStorage.instance.ref('receipt/$fileName');
 
       await storageRef.putFile(_receiptFile!);
 
       final downloadUrl = await storageRef.getDownloadURL();
 
-      /// Save reference in Firestore
       await FirebaseFirestore.instance
-          .collection('insurance_orders')
-          .doc(widget.orderId)
+          .collection('orders')
+          .doc(_orderDocId)
           .set({
-        'userId': FirebaseAuth.instance.currentUser?.uid,
-        'totalAmount': widget.totalAmount,
-        'selectedItems': widget.selectedItems,
         'receiptUrl': downloadUrl,
         'receiptFileName': fileName,
         'paymentStatus': 'Pending Verification',
@@ -126,18 +249,14 @@ class _PaymentPageState extends State<PaymentPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Receipt uploaded into receipt folder successfully"),
-          ),
+          const SnackBar(content: Text("Receipt uploaded successfully")),
         );
       }
     } catch (e) {
       debugPrint("Upload receipt error: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Failed to upload receipt: $e"),
-          ),
+          SnackBar(content: Text("Failed to upload receipt: $e")),
         );
       }
     } finally {
@@ -154,9 +273,11 @@ class _PaymentPageState extends State<PaymentPage> {
   /// =========================
   Future<void> confirmPayment() async {
     try {
+      await _createOrderIfNeeded();
+
       await FirebaseFirestore.instance
-          .collection('insurance_orders')
-          .doc(widget.orderId)
+          .collection('orders')
+          .doc(_orderDocId)
           .set({
         'paymentStatus': 'Payment Submitted',
         'paymentConfirmedAt': FieldValue.serverTimestamp(),
@@ -167,9 +288,9 @@ class _PaymentPageState extends State<PaymentPage> {
           context,
           MaterialPageRoute(
             builder: (_) => ReceiptPage(
-              totalAmount: widget.totalAmount,
-              orderId: widget.orderId,
-              selectedItems: widget.selectedItems,
+              totalAmount: totalAmount,
+              orderId: _generatedOrderId ?? "TDS-000",
+              selectedItems: selectedItems,
             ),
           ),
         );
@@ -437,7 +558,7 @@ class _PaymentPageState extends State<PaymentPage> {
             const SizedBox(height: 8),
 
             Text(
-              "RM ${widget.totalAmount.toStringAsFixed(2)}",
+              "RM ${totalAmount.toStringAsFixed(2)}",
               style: const TextStyle(
                 fontSize: 30,
                 fontWeight: FontWeight.bold,

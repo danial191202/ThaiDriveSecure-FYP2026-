@@ -193,13 +193,8 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
         context,
         MaterialPageRoute(
           builder: (_) => PaymentPage(
-            totalAmount: totalPrice,
-            orderId: "Q1001",
-            selectedItems: [
-              if (insurancePrice > 0) "Insurance Package",
-              if (tdacPrice > 0) "TDAC Package",
-              if (tm23Price > 0) "TM23 Package",
-            ],
+            vehicleType: vehicleType,
+            packageType: "Compulsory",
           ),
         ),
       );
