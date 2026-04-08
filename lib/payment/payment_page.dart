@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:gallery_saver_plus/gallery_saver.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'receipt_page.dart';
 import 'package:thaidrivesecure/screens/home_page.dart';
@@ -28,21 +30,9 @@ class _PaymentPageState extends State<PaymentPage> {
   File? _receiptFile;
   final ImagePicker _picker = ImagePicker();
 
-  /// =========================
-  /// PICK RECEIPT IMAGE ONLY
-  /// =========================
-  Future<void> pickReceipt() async {
-    final XFile? file = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
-
-    if (file != null) {
-      setState(() {
-        _receiptFile = File(file.path);
-      });
-    }
-  }
+  bool _isUploading = false;
+  String? _receiptUrl;
+  bool _receiptSubmitted = false;
 
   /// =========================
   /// DOWNLOAD QR CODE
@@ -58,18 +48,136 @@ class _PaymentPageState extends State<PaymentPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("QR Code saved to gallery"),
-          ),
+          const SnackBar(content: Text("QR Code saved to gallery")),
         );
       }
     } catch (e) {
       debugPrint("Download QR error: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to save QR Code")),
+        );
+      }
+    }
+  }
+
+  /// =========================
+  /// PICK RECEIPT IMAGE
+  /// =========================
+  Future<void> pickReceipt(StateSetter setDialogState) async {
+    final XFile? file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+
+    if (file != null) {
+      setState(() {
+        _receiptFile = File(file.path);
+        _receiptSubmitted = false;
+        _receiptUrl = null;
+      });
+      setDialogState(() {});
+    }
+  }
+
+  /// =========================
+  /// UPLOAD TO FIREBASE STORAGE
+  /// DIRECTLY INTO receipt/ FOLDER
+  /// =========================
+  Future<void> uploadReceiptToFirebase() async {
+    if (_receiptFile == null) return;
+
+    try {
+      setState(() {
+        _isUploading = true;
+      });
+
+      /// Unique filename
+      final fileName =
+          'receipt_${widget.orderId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      /// IMPORTANT:
+      /// This uploads directly into Firebase Storage -> receipt/
+      final storageRef = FirebaseStorage.instance.ref('receipt/$fileName');
+
+      await storageRef.putFile(_receiptFile!);
+
+      final downloadUrl = await storageRef.getDownloadURL();
+
+      /// Save reference in Firestore
+      await FirebaseFirestore.instance
+          .collection('insurance_orders')
+          .doc(widget.orderId)
+          .set({
+        'orderId': widget.orderId,
+        'totalAmount': widget.totalAmount,
+        'selectedItems': widget.selectedItems,
+        'receiptUrl': downloadUrl,
+        'receiptFileName': fileName,
+        'paymentStatus': 'Pending Verification',
+        'receiptUploadedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      setState(() {
+        _receiptUrl = downloadUrl;
+        _receiptSubmitted = true;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Failed to save QR Code"),
+            content: Text("Receipt uploaded into receipt folder successfully"),
           ),
+        );
+      }
+    } catch (e) {
+      debugPrint("Upload receipt error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed to upload receipt: $e"),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
+    }
+  }
+
+  /// =========================
+  /// CONFIRM PAYMENT
+  /// =========================
+  Future<void> confirmPayment() async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('insurance_orders')
+          .doc(widget.orderId)
+          .set({
+        'paymentStatus': 'Payment Submitted',
+        'paymentConfirmedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ReceiptPage(
+              totalAmount: widget.totalAmount,
+              orderId: widget.orderId,
+              selectedItems: widget.selectedItems,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("Confirm payment error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to confirm payment: $e")),
         );
       }
     }
@@ -117,21 +225,8 @@ class _PaymentPageState extends State<PaymentPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    /// Upload Area / Preview Area
                     GestureDetector(
-                      onTap: () async {
-                        final XFile? file = await _picker.pickImage(
-                          source: ImageSource.gallery,
-                          imageQuality: 85,
-                        );
-
-                        if (file != null) {
-                          setState(() {
-                            _receiptFile = File(file.path);
-                          });
-                          setDialogState(() {});
-                        }
-                      },
+                      onTap: () => pickReceipt(setDialogState),
                       child: Container(
                         width: double.infinity,
                         height: 220,
@@ -144,7 +239,6 @@ class _PaymentPageState extends State<PaymentPage> {
                           ),
                         ),
                         child: _receiptFile == null
-                            /// EMPTY STATE
                             ? Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -187,8 +281,6 @@ class _PaymentPageState extends State<PaymentPage> {
                                   ),
                                 ],
                               )
-
-                            /// IMAGE PREVIEW INSIDE BOX
                             : Stack(
                                 children: [
                                   ClipRRect(
@@ -200,8 +292,6 @@ class _PaymentPageState extends State<PaymentPage> {
                                       fit: BoxFit.cover,
                                     ),
                                   ),
-
-                                  /// remove button
                                   Positioned(
                                     top: 10,
                                     right: 10,
@@ -209,6 +299,8 @@ class _PaymentPageState extends State<PaymentPage> {
                                       onTap: () {
                                         setState(() {
                                           _receiptFile = null;
+                                          _receiptSubmitted = false;
+                                          _receiptUrl = null;
                                         });
                                         setDialogState(() {});
                                       },
@@ -227,8 +319,6 @@ class _PaymentPageState extends State<PaymentPage> {
                                       ),
                                     ),
                                   ),
-
-                                  /// change image label
                                   Positioned(
                                     bottom: 10,
                                     left: 10,
@@ -257,7 +347,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
                     const SizedBox(height: 24),
 
-                    /// Submit Button
                     SizedBox(
                       width: double.infinity,
                       height: 56,
@@ -272,28 +361,30 @@ class _PaymentPageState extends State<PaymentPage> {
                           ),
                           elevation: 0,
                         ),
-                        onPressed: _receiptFile != null
-                            ? () {
-                                Navigator.pop(context);
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      "Receipt uploaded successfully",
-                                    ),
-                                  ),
-                                );
-
-                                setState(() {});
+                        onPressed: (_receiptFile != null && !_isUploading)
+                            ? () async {
+                                await uploadReceiptToFirebase();
+                                if (mounted && _receiptSubmitted) {
+                                  Navigator.pop(context);
+                                }
                               }
                             : null,
-                        child: const Text(
-                          "Submit Receipt",
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                        child: _isUploading
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : const Text(
+                                "Submit Receipt",
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                       ),
                     ),
                   ],
@@ -308,7 +399,7 @@ class _PaymentPageState extends State<PaymentPage> {
 
   @override
   Widget build(BuildContext context) {
-    final bool canConfirm = _receiptFile != null;
+    final bool canConfirm = _receiptSubmitted && _receiptUrl != null;
 
     return Scaffold(
       backgroundColor: const Color(0xFFEAF3F8),
@@ -334,7 +425,6 @@ class _PaymentPageState extends State<PaymentPage> {
           children: [
             const SizedBox(height: 8),
 
-            /// TOTAL PAYABLE
             const Text(
               "TOTAL PAYABLE",
               style: TextStyle(
@@ -345,7 +435,6 @@ class _PaymentPageState extends State<PaymentPage> {
             ),
             const SizedBox(height: 8),
 
-            /// DYNAMIC TOTAL
             Text(
               "RM ${widget.totalAmount.toStringAsFixed(2)}",
               style: const TextStyle(
@@ -357,7 +446,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
             const SizedBox(height: 26),
 
-            /// QR CARD
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
@@ -390,7 +478,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
             const SizedBox(height: 18),
 
-            /// DOWNLOAD QR BUTTON
             SizedBox(
               width: 216,
               height: 36,
@@ -418,7 +505,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
             const SizedBox(height: 26),
 
-            /// COMPANY NAME
             const Text(
               "CNT ENTERPRISE CHANGLUN TOURS",
               style: TextStyle(
@@ -430,7 +516,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
             const SizedBox(height: 10),
 
-            /// BANK LOGO
             Image.asset(
               "assets/pbank.png",
               height: 34,
@@ -438,7 +523,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
             const SizedBox(height: 24),
 
-            /// UPLOAD RECEIPT BUTTON
             SizedBox(
               width: 216,
               height: 36,
@@ -457,15 +541,27 @@ class _PaymentPageState extends State<PaymentPage> {
                   "Upload Payment Receipt",
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: 16,
+                    fontSize: 14,
                   ),
                 ),
               ),
             ),
 
-            const SizedBox(height: 22),
+            const SizedBox(height: 16),
 
-            /// PAY WITH CASH CARD
+            if (_receiptSubmitted) ...[
+              const Text(
+                "Receipt uploaded successfully",
+                style: TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            const SizedBox(height: 10),
+
             InkWell(
               borderRadius: BorderRadius.circular(18),
               onTap: () {
@@ -537,7 +633,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
             const SizedBox(height: 28),
 
-            /// CONFIRM PAYMENT BUTTON
             SizedBox(
               width: double.infinity,
               height: 58,
@@ -554,17 +649,8 @@ class _PaymentPageState extends State<PaymentPage> {
                   ),
                 ),
                 onPressed: canConfirm
-                    ? () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                          builder: (_) => ReceiptPage(
-                            totalAmount: widget.totalAmount,
-                            orderId: widget.orderId,
-                            selectedItems: widget.selectedItems,
-                          ),
-                          ),
-                        );
+                    ? () async {
+                        await confirmPayment();
                       }
                     : null,
                 child: const Row(
