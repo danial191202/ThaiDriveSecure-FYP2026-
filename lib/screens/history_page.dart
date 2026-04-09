@@ -10,7 +10,8 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
-  String selectedTab = "Applied";
+  /// ✅ Default tab = Pending
+  String selectedTab = "Pending";
 
   @override
   Widget build(BuildContext context) {
@@ -76,9 +77,9 @@ class _HistoryPageState extends State<HistoryPage> {
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
-                        .collection('insurance_orders')
+                        .collection('orders') // ✅ CHANGED
                         .where('userId', isEqualTo: currentUser.uid)
-                        .orderBy('receiptUploadedAt', descending: true)
+                        .orderBy('createdAt', descending: true) // ✅ NEWEST FIRST
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState ==
@@ -108,11 +109,11 @@ class _HistoryPageState extends State<HistoryPage> {
 
                       final docs = snapshot.data!.docs;
 
-                      /// Filter by tab
+                      /// ✅ Filter by selected tab using NEW status field
                       final filteredDocs = docs.where((doc) {
                         final data = doc.data() as Map<String, dynamic>;
                         final status =
-                            _mapFirestoreStatusToTab(data['paymentStatus']);
+                            _mapFirestoreStatusToTab(data['status']);
                         return status == selectedTab;
                       }).toList();
 
@@ -175,18 +176,23 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   /// ================= STATUS MAPPER =================
-  String _mapFirestoreStatusToTab(String? paymentStatus) {
-    if (paymentStatus == null) return "Applied";
+  String _mapFirestoreStatusToTab(String? status) {
+    if (status == null) return "Pending";
 
-    switch (paymentStatus.toLowerCase()) {
+    switch (status.toLowerCase()) {
+      case "order pending":
+      case "pending":
       case "pending verification":
       case "payment submitted":
         return "Pending";
-      case "verified":
+
+      case "already pickup":
       case "completed":
+      case "verified":
         return "Completed";
+
       default:
-        return "Applied";
+        return "Pending";
     }
   }
 
@@ -196,25 +202,18 @@ class _HistoryPageState extends State<HistoryPage> {
       return "Insurance Package";
     }
 
-    if (selectedItems.contains("Insurance Compulsory")) {
-      return "Package Compulsory";
-    }
-
     return selectedItems.join(", ");
   }
 
   /// ================= CARD =================
   Widget buildHistoryCard(Map<String, dynamic> item) {
-    final String firestoreStatus = item["paymentStatus"] ?? "Applied";
+    final String firestoreStatus = item["status"] ?? "Order Pending";
     final String status = _mapFirestoreStatusToTab(firestoreStatus);
 
     Color badgeColor;
     Color badgeTextColor;
 
-    if (status == "Applied") {
-      badgeColor = const Color(0xFFF8CACA);
-      badgeTextColor = const Color(0xFFD9534F);
-    } else if (status == "Pending") {
+    if (status == "Pending") {
       badgeColor = const Color(0xFFFCE8B2);
       badgeTextColor = const Color(0xFFD39E00);
     } else {
@@ -222,28 +221,28 @@ class _HistoryPageState extends State<HistoryPage> {
       badgeTextColor = const Color(0xFF2C9C8D);
     }
 
-    String buttonText;
-    if (status == "Applied") {
-      buttonText = "Complete Payment";
-    } else if (status == "Pending") {
-      buttonText = "View Order";
-    } else {
-      buttonText = "View Receipt";
-    }
+    String buttonText = status == "Pending" ? "View Order" : "View Receipt";
 
     final List<dynamic> selectedItems = item["selectedItems"] ?? [];
-    final bool hasTDAC = selectedItems.contains("TDAC");
-    final bool hasTM = selectedItems.contains("TM2/3");
+    final bool hasTDAC = selectedItems.any(
+      (e) => e.toString().toLowerCase().contains("tdac"),
+    );
+    final bool hasTM = selectedItems.any(
+      (e) =>
+          e.toString().toLowerCase().contains("tm23") ||
+          e.toString().toLowerCase().contains("tm2") ||
+          e.toString().toLowerCase().contains("tm3"),
+    );
 
     final String packageName = _buildPackageName(selectedItems);
-    final String orderId = item["orderId"] ?? "-";
+    final String orderId = item["orderId"] ?? "TDS-000";
     final double totalPrice =
-        double.tryParse(item["totalAmount"].toString()) ?? 0.0;
+        double.tryParse((item["totalAmount"] ?? item["totalPrice"] ?? 0).toString()) ?? 0.0;
 
     String dateText = "-";
-    final uploadedAt = item["receiptUploadedAt"];
-    if (uploadedAt is Timestamp) {
-      final date = uploadedAt.toDate();
+    final createdAt = item["createdAt"];
+    if (createdAt is Timestamp) {
+      final date = createdAt.toDate();
       dateText =
           "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
     }
@@ -357,7 +356,7 @@ class _HistoryPageState extends State<HistoryPage> {
               const Icon(Icons.description, size: 18, color: Colors.grey),
               const SizedBox(width: 8),
               Text(
-                hasTM ? "TM2/TM3 Documents" : "No TM2/TM3",
+                hasTM ? "TM23 / TM2 / TM3" : "No TM23/TM2/TM3",
                 style: const TextStyle(color: Colors.black54),
               ),
             ],
