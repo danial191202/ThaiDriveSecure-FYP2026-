@@ -147,14 +147,14 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
 
     try {
       final orderRef = FirebaseFirestore.instance
-          .collection('insurance_orders')
+          .collection('orders')
           .doc();
 
       final orderId = orderRef.id;
 
       final vehicleGrantUrl = await _uploadImage(
         File(widget.vehicleGrantPath),
-        "insurance_orders/$orderId/vehicle_grant.jpg",
+        "orders/$orderId/vehicle_grant.jpg",
       );
 
       List<String> passportUrls = [];
@@ -162,7 +162,7 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
       for (int i = 0; i < widget.passportPaths.length; i++) {
         final url = await _uploadImage(
           File(widget.passportPaths[i]),
-          "insurance_orders/$orderId/passport_${i + 1}.jpg",
+          "orders/$orderId/passport_${i + 1}.jpg",
         );
         passportUrls.add(url);
       }
