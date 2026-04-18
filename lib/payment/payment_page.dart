@@ -14,11 +14,13 @@ import 'package:thaidrivesecure/screens/home_page.dart';
 class PaymentPage extends StatefulWidget {
   final String vehicleType;
   final String packageType;
+  final String orderId;
 
   const PaymentPage({
     super.key,
     required this.vehicleType,
     required this.packageType,
+    required this.orderId,
   });
 
   @override
