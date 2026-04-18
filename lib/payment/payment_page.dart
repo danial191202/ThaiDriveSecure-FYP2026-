@@ -1,4 +1,4 @@
-// 🔥 FULL CLEAN VERSION
+// 🔥 FINAL VERSION WITH DELIVERY METHOD
 
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -11,7 +11,6 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'receipt_page.dart';
-import 'package:thaidrivesecure/screens/home_page.dart';
 
 class PaymentPage extends StatefulWidget {
   final Map<String, dynamic> formData;
@@ -36,8 +35,7 @@ class _PaymentPageState extends State<PaymentPage> {
   bool _isUploading = false;
   bool _receiptSubmitted = false;
 
-  // ================= PRICE =================
-  double get totalAmount => 75.00;
+  double get totalAmount => 120.00;
 
   // ================= QR DOWNLOAD =================
   Future<void> downloadQrCode() async {
@@ -85,13 +83,12 @@ class _PaymentPageState extends State<PaymentPage> {
 
       final orderId = DateTime.now().millisecondsSinceEpoch.toString();
 
-      // 🔥 Upload vehicle grant
+      // 🔥 Upload documents
       final vehicleUrl = await uploadFile(
         widget.vehicleGrantFile,
         'orders/$orderId/vehicle_grant.jpg',
       );
 
-      // 🔥 Upload passports
       List<String> passportUrls = [];
       for (int i = 0; i < widget.passportFiles.length; i++) {
         final url = await uploadFile(
@@ -101,13 +98,12 @@ class _PaymentPageState extends State<PaymentPage> {
         passportUrls.add(url);
       }
 
-      // 🔥 Upload receipt
       final receiptUrl = await uploadFile(
         _receiptFile!,
         'orders/$orderId/receipt.jpg',
       );
 
-      // 🔥 SAVE EVERYTHING
+      // 🔥 SAVE EVERYTHING (UPDATED HERE)
       await FirebaseFirestore.instance.collection('orders').doc(orderId).set({
         "orderId": orderId,
 
@@ -135,6 +131,20 @@ class _PaymentPageState extends State<PaymentPage> {
           "submittedAt": Timestamp.now(),
         },
 
+        "travel": {
+          "departDate": widget.formData['departDate'],
+          "returnDate": widget.formData['returnDate'],
+          "days": widget.formData['travelDays'],
+          "duration": widget.formData['duration'],
+        },
+
+        "packages": widget.formData['packages'] ?? [],
+        
+        // ✅ NEW DELIVERY FIELD
+        "delivery": {
+          "method": widget.formData['deliveryMethod'] ?? "Via PDF",
+        },
+
         "pricing": {
           "totalPrice": totalAmount,
         },
@@ -143,7 +153,6 @@ class _PaymentPageState extends State<PaymentPage> {
         "createdAt": Timestamp.now(),
       });
 
-      // ✅ SUCCESS
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -169,21 +178,52 @@ class _PaymentPageState extends State<PaymentPage> {
     final canConfirm = _receiptSubmitted;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Payment")),
-      body: Padding(
+      backgroundColor: const Color(0xFFEAF3F8),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF163B6D),
+        elevation: 0,
+        centerTitle: true,
+        leading: const BackButton(color: Colors.white),
+        title: const Text("Secure Payment",
+            style: TextStyle(color: Colors.white)),
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Text("RM $totalAmount"),
-
-            ElevatedButton(
-              onPressed: downloadQrCode,
-              child: const Text("Download QR"),
+            Row(
+              children: [
+                _stepCircle("1", false),
+                _stepLine(),
+                _stepCircle("2", false),
+                _stepLine(),
+                _stepCircle("3", true),
+              ],
             ),
+
+            const SizedBox(height: 25),
+
+            const Text("TOTAL PAYABLE"),
+            Text("RM ${totalAmount.toStringAsFixed(2)}",
+                style: const TextStyle(
+                    fontSize: 28, fontWeight: FontWeight.bold)),
+
+            const SizedBox(height: 20),
+
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Image.asset("assets/qr.png", height: 220),
+            ),
+
+            const SizedBox(height: 20),
 
             ElevatedButton(
               onPressed: _showUploadDialog,
-              child: const Text("Upload Receipt"),
+              child: const Text("Upload Payment Receipt"),
             ),
 
             const SizedBox(height: 20),
@@ -200,7 +240,21 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
-  // ================= DIALOG =================
+  Widget _stepCircle(String text, bool active) {
+    return CircleAvatar(
+      radius: 14,
+      backgroundColor:
+          active ? const Color(0xFF163B6D) : Colors.grey.shade300,
+      child: Text(text,
+          style: TextStyle(
+              color: active ? Colors.white : Colors.black, fontSize: 12)),
+    );
+  }
+
+  Widget _stepLine() {
+    return const Expanded(child: Divider());
+  }
+
   void _showUploadDialog() {
     showDialog(
       context: context,

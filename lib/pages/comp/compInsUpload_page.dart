@@ -19,6 +19,7 @@ class CompInsUpload extends StatefulWidget {
   final String vehicleType;
   final DateTime departDate;
   final DateTime returnDate;
+  final String deliveryMethod;
 
   const CompInsUpload({
     super.key,
@@ -31,6 +32,7 @@ class CompInsUpload extends StatefulWidget {
     required this.vehicleType,
     required this.departDate,
     required this.returnDate,
+    required this.deliveryMethod,
   });
 
   @override
@@ -109,6 +111,12 @@ class _CompInsUploadState extends State<CompInsUpload> {
             'duration': widget.duration,
             'departDate': widget.departDate,
             'returnDate': widget.returnDate,
+            'travelDays': widget.departDate
+                .difference(widget.returnDate)
+                .inDays
+                .abs() + 1,
+            'packages': ['Insurance Compulsory', 'TM2/3', 'TDAC'],
+            'deliveryMethod': widget.deliveryMethod, 
           },
           vehicleGrantFile: vehicleGrantImage!,
           passportFiles: passportImages.cast<File>(),

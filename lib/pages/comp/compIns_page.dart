@@ -64,6 +64,8 @@ class _CompInsState extends State<CompIns> {
     return _returnDate!.difference(_departDate!).inDays + 1;
   }
 
+  String _deliveryMethod = "Via PDF";
+
   String get vehicleImage {
     switch (widget.vehicleType) {
       case "Pickup/SUV":
@@ -136,6 +138,7 @@ class _CompInsState extends State<CompIns> {
           vehicleType: widget.vehicleType,
           departDate: _departDate!,
           returnDate: _returnDate!,
+          deliveryMethod: _deliveryMethod,
         ),
       ),
     );
@@ -322,6 +325,15 @@ class _CompInsState extends State<CompIns> {
                       durationList,
                       (v) => setState(() => _duration = v!),
                     ),
+
+                    const SizedBox(height: 15),
+
+                  dropdown(
+                    "Delivery Method",
+                    _deliveryMethod,
+                    ["Via PDF", "Deliver", "Take Away"],
+                    (v) => setState(() => _deliveryMethod = v!),
+                  ),
 
                     const SizedBox(height: 24),
 
