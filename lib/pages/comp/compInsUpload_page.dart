@@ -3,12 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 // ignore: depend_on_referenced_packages
 import 'package:path/path.dart' as path;
 
-import 'package:thaidrivesecure/pages/comp/compInsSubmit_page.dart';
+// 👉 CHANGE: go to PaymentPage instead
+import 'package:thaidrivesecure/payment/payment_page.dart';
 
 class CompInsUpload extends StatefulWidget {
   final String name;
@@ -47,43 +46,22 @@ class _CompInsUploadState extends State<CompInsUpload> {
   @override
   void initState() {
     super.initState();
+
+    // ✅ Reset state properly
+    vehicleGrantImage = null;
     passportImages = List.generate(widget.passengerCount, (_) => null);
   }
 
-  // ================= FIREBASE UPLOAD =================
-  Future<String?> uploadToFirebase(File file, String path) async {
-    try {
-      print("Uploading file: ${file.path}");
-
-      if (!file.existsSync()) {
-        throw Exception("File does not exist locally");
-      }
-
-      final ref = FirebaseStorage.instance.ref().child(path);
-
-      final snapshot = await ref.putFile(file);
-
-      if (snapshot.state == TaskState.success) {
-        final url = await ref.getDownloadURL();
-        print("Download URL: $url");
-        return url;
-      } else {
-        throw Exception("Upload failed");
-      }
-    } catch (e) {
-      print("Upload error: $e");
-      return null;
-    }
-  }
-
-  // ================= SAVE IMAGE =================
+  // ================= SAVE IMAGE LOCALLY =================
   Future<File> _saveImagePermanently(XFile image) async {
     final directory = await getApplicationDocumentsDirectory();
     final fileName =
         "${DateTime.now().millisecondsSinceEpoch}_${path.basename(image.path)}";
+
     final savedImage = await File(
       image.path,
     ).copy('${directory.path}/$fileName');
+
     return savedImage;
   }
 
@@ -107,104 +85,36 @@ class _CompInsUploadState extends State<CompInsUpload> {
     }
   }
 
-  // ================= SUBMIT =================
+  // ================= SUBMIT (NO FIREBASE HERE) =================
   Future<void> submitDocuments() async {
-    if (vehicleGrantImage == null || passportImages.any((img) => img == null)) {
+    if (vehicleGrantImage == null ||
+        passportImages.any((img) => img == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please upload all required documents")),
       );
       return;
     }
 
-    try {
-      final orderId = DateTime.now().millisecondsSinceEpoch.toString();
-
-      // 🔥 UPLOAD VEHICLE GRANT
-      final vehicleGrantUrl = await uploadToFirebase(
-        vehicleGrantImage!,
-        'orders/$orderId/vehicle_grant.jpg',
-      );
-
-      if (vehicleGrantUrl == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Vehicle grant upload failed")),
-        );
-        return;
-      }
-
-      // 🔥 UPLOAD PASSPORTS
-      List<Map<String, dynamic>> passportDocs = [];
-
-      for (int i = 0; i < passportImages.length; i++) {
-        final file = passportImages[i]!;
-
-        final url = await uploadToFirebase(
-          file,
-          'orders/$orderId/passport_${i + 1}.jpg',
-        );
-
-        if (url == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Passport ${i + 1} upload failed")),
-          );
-          return;
-        }
-
-        passportDocs.add({"name": "Passport ${i + 1}", "url": url});
-      }
-
-      // 🔥 SAVE TO FIRESTORE
-      await FirebaseFirestore.instance.collection('orders').doc(orderId).set({
-        "orderId": orderId,
-
-        "fullName": widget.name,
-        "phoneNumber": widget.phone,
-
-        "vehicleType": widget.vehicleType,
-        "passengers": widget.passengerCount,
-
-        "borderRoute": widget.where,
-        "travelDayLabel": widget.whenDate,
-
-        "packages": ['Insurance Compulsory', 'TM2/3', 'TDAC'],
-
-        "documents": {
-          "passportDocuments": passportDocs,
-          "vehicleGrant": {"name": "Vehicle Grant", "url": vehicleGrantUrl},
-        },
-
-        "pricing": {"totalPrice": 75.00},
-
-        "status": "Order Pending",
-        "createdAt": Timestamp.now(),
-      });
-
-      // ✅ SUCCESS
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Upload successful")));
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => CompInsSubmit(
-            formData: {
-              'name': widget.name,
-              'phone': widget.phone,
-              'where': widget.where,
-            },
-            vehicleGrantPath: vehicleGrantUrl,
-            passportPaths: passportDocs.map((e) => e['url'] as String).toList(),
-          ),
+    // ✅ Navigate to PaymentPage and pass FILES (not URLs)
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentPage(
+          formData: {
+            'name': widget.name,
+            'phone': widget.phone,
+            'where': widget.where,
+            'vehicleType': widget.vehicleType,
+            'passengers': widget.passengerCount,
+            'duration': widget.duration,
+            'departDate': widget.departDate,
+            'returnDate': widget.returnDate,
+          },
+          vehicleGrantFile: vehicleGrantImage!,
+          passportFiles: passportImages.cast<File>(),
         ),
-      );
-    } catch (e) {
-      print("Submit error: $e");
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Upload failed")));
-    }
+      ),
+    );
   }
 
   // ================= UI =================
@@ -259,7 +169,8 @@ class _CompInsUploadState extends State<CompInsUpload> {
               return uploadBox(
                 image: passportImages[index],
                 label: "Passenger ${index + 1} Passport",
-                onTap: () => pickImage(isVehicleGrant: false, index: index),
+                onTap: () =>
+                    pickImage(isVehicleGrant: false, index: index),
               );
             }),
 
@@ -276,7 +187,7 @@ class _CompInsUploadState extends State<CompInsUpload> {
                   ),
                 ),
                 onPressed: submitDocuments,
-                child: const Text("Submit"),
+                child: const Text("Continue to Payment"),
               ),
             ),
           ],
@@ -286,7 +197,11 @@ class _CompInsUploadState extends State<CompInsUpload> {
   }
 
   // ================= UPLOAD BOX =================
-  Widget uploadBox({File? image, String? label, required VoidCallback onTap}) {
+  Widget uploadBox({
+    File? image,
+    String? label,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(

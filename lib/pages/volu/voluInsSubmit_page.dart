@@ -6,26 +6,42 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:thaidrivesecure/payment/payment_page.dart';
 
-class VoluPlusInsSubmit extends StatefulWidget {
+class VoluInsSubmit extends StatefulWidget {
   final Map<String, dynamic> formData;
-  final String vehicleGrantPath;
-  final List<String> passportPaths;
+  final File vehicleGrantFile;
+  final List<File> passportFiles;
 
-  const VoluPlusInsSubmit({
+  const VoluInsSubmit({
     super.key,
     required this.formData,
-    required this.vehicleGrantPath,
-    required this.passportPaths,
+    required this.vehicleGrantFile,
+    required this.passportFiles,
   });
 
   @override
-  State<VoluPlusInsSubmit> createState() => _VoluPlusInsSubmitState();
+  State<VoluInsSubmit> createState() => _VoluInsSubmitState();
 }
 
-class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
+class _VoluInsSubmitState extends State<VoluInsSubmit> {
   String selectedDelivery = "Take Away";
   bool isSubmitting = false;
 
+      // ================= DATA =================
+    String get fullName => widget.formData['name'] ?? "-";
+    String get phone => widget.formData['phone'] ?? "-";
+    String get borderRoute => widget.formData['where'] ?? "-";
+
+    DateTime get departDate =>
+        widget.formData['departDate'] ?? DateTime.now();
+
+    DateTime get returnDate =>
+        widget.formData['returnDate'] ??
+        DateTime.now().add(const Duration(days: 1));
+
+    int get passengers => widget.formData['passengers'] ?? 1;
+    String get durationLabel => widget.formData['duration'] ?? "9 Days";
+    String get vehicleType => widget.formData['vehicleType'] ?? "Sedan";
+/*
   // ================= SAFE DATE =================
   DateTime get departDate {
     final value = widget.formData['departDate'];
@@ -42,7 +58,7 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
   int get passengers => widget.formData['passengers'] ?? 1;
   String get durationLabel => widget.formData['duration'] ?? "9 Days";
   String get vehicleType => widget.formData['vehicleType'] ?? 'Sedan';
-
+*/
   int get totalDays => returnDate.difference(departDate).inDays + 1;
 
   // ================= PRICE TABLE =================
@@ -119,8 +135,7 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
 
   int get tdacPrice => passengers * 2;
   int get tm23Price => 8;
-  double get totalPrice =>
-        (insurancePrice + tdacPrice + tm23Price).toDouble();
+  double get totalPrice => (insurancePrice + tdacPrice + tm23Price).toDouble();
   // ================= IMAGE UPLOAD =================
   Future<String> _uploadImage(File file, String storagePath) async {
     if (!await file.exists()) {
@@ -146,22 +161,20 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
     setState(() => isSubmitting = true);
 
     try {
-      final orderRef = FirebaseFirestore.instance
-          .collection('orders')
-          .doc();
+      final orderRef = FirebaseFirestore.instance.collection('orders').doc();
 
       final orderId = orderRef.id;
 
       final vehicleGrantUrl = await _uploadImage(
-        File(widget.vehicleGrantPath),
+        widget.vehicleGrantFile,
         "orders/$orderId/vehicle_grant.jpg",
       );
 
       List<String> passportUrls = [];
 
-      for (int i = 0; i < widget.passportPaths.length; i++) {
+      for (int i = 0; i < widget.passportFiles.length; i++) {
         final url = await _uploadImage(
-          File(widget.passportPaths[i]),
+          widget.passportFiles[i],
           "orders/$orderId/passport_${i + 1}.jpg",
         );
         passportUrls.add(url);
@@ -193,9 +206,20 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
         context,
         MaterialPageRoute(
           builder: (_) => PaymentPage(
-            vehicleType: vehicleType,
-            packageType: "Voluntary",
-            orderId: orderId, // 🔥 IMPORTANT FOR PAYMENT PAGE
+            formData: {
+              'name': fullName,
+              'phone': phone,
+              'where': borderRoute,
+              'vehicleType': vehicleType,
+              'passengers': passengers,
+              'duration': durationLabel,
+              'departDate': departDate,
+              'returnDate': returnDate,
+            },
+
+            // ⚠️ YOU MUST HAVE THESE VARIABLES IN THIS PAGE
+            vehicleGrantFile: widget.vehicleGrantFile,
+            passportFiles: widget.passportFiles,
           ),
         ),
       );

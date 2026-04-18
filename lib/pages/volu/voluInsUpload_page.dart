@@ -8,7 +8,7 @@ import 'package:path/path.dart' as path;
 
 import 'package:thaidrivesecure/pages/volu/voluInsSubmit_page.dart';
 
-class VoluPlusInsUpload extends StatefulWidget {
+class VoluInsUpload extends StatefulWidget {
   final String name;
   final String phone;
   final String where;
@@ -19,7 +19,7 @@ class VoluPlusInsUpload extends StatefulWidget {
   final DateTime departDate;
   final DateTime returnDate;
 
-  const VoluPlusInsUpload({
+  const VoluInsUpload({
     super.key,
     required this.name,
     required this.phone,
@@ -33,10 +33,10 @@ class VoluPlusInsUpload extends StatefulWidget {
   });
 
   @override
-  State<VoluPlusInsUpload> createState() => _VoluPlusInsUploadState();
+  State<VoluInsUpload> createState() => _VoluInsUploadState();
 }
 
-class _VoluPlusInsUploadState extends State<VoluPlusInsUpload> {
+class _VoluInsUploadState extends State<VoluInsUpload> {
   final ImagePicker _picker = ImagePicker();
 
   File? vehicleGrantImage;
@@ -88,7 +88,7 @@ class _VoluPlusInsUploadState extends State<VoluPlusInsUpload> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => VoluPlusInsSubmit(
+        builder: (_) => VoluInsSubmit(
           formData: {
             'name': widget.name,
             'phone': widget.phone,
@@ -99,10 +99,11 @@ class _VoluPlusInsUploadState extends State<VoluPlusInsUpload> {
             'duration': widget.duration,
             'departDate': widget.departDate,
             'returnDate': widget.returnDate,
-            'packages': ['Insurance Compulsory', 'TM2/3', 'TDAC'],
           },
-          vehicleGrantPath: vehicleGrantImage!.path,
-          passportPaths: passportImages.map((file) => file!.path).toList(),
+
+          // ✅ FIXED HERE
+          vehicleGrantFile: vehicleGrantImage!,
+          passportFiles: passportImages.cast<File>(),
         ),
       ),
     );

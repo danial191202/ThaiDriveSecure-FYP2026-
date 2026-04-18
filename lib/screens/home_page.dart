@@ -9,7 +9,7 @@ import 'package:thaidrivesecure/pages/comp/compIns_page.dart';
 import 'package:thaidrivesecure/screens/status_page.dart';
 import 'package:thaidrivesecure/screens/history_page.dart';
 import 'package:thaidrivesecure/screens/setting_page.dart';
-import 'package:thaidrivesecure/pages/volu+/volu+Ins_page.dart';
+import 'package:thaidrivesecure/pages/voluPlus/voluPlusIns_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

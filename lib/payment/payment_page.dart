@@ -1,3 +1,5 @@
+// 🔥 FULL CLEAN VERSION
+
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -12,15 +14,15 @@ import 'receipt_page.dart';
 import 'package:thaidrivesecure/screens/home_page.dart';
 
 class PaymentPage extends StatefulWidget {
-  final String vehicleType;
-  final String packageType;
-  final String orderId;
+  final Map<String, dynamic> formData;
+  final File vehicleGrantFile;
+  final List<File> passportFiles;
 
   const PaymentPage({
     super.key,
-    required this.vehicleType,
-    required this.packageType,
-    required this.orderId,
+    required this.formData,
+    required this.vehicleGrantFile,
+    required this.passportFiles,
   });
 
   @override
@@ -32,770 +34,206 @@ class _PaymentPageState extends State<PaymentPage> {
   final ImagePicker _picker = ImagePicker();
 
   bool _isUploading = false;
-  String? _receiptUrl;
   bool _receiptSubmitted = false;
 
-  String? _generatedOrderId;
-  String? _orderDocId;
+  // ================= PRICE =================
+  double get totalAmount => 75.00;
 
-  /// =========================
-  /// AUTO BUILD ITEMS + PRICE
-  /// =========================
-  List<String> get selectedItems {
-    return [
-      widget.packageType,
-      widget.vehicleType,
-      "Thailand Insurance",
-    ];
-  }
-
-  double get totalAmount {
-    if (widget.packageType == "Compulsory") {
-      switch (widget.vehicleType) {
-        case "Pickup/SUV":
-          return 55.00;
-        case "MPV":
-          return 60.00;
-        case "Motorcycle":
-          return 35.00;
-        case "Sedan":
-          return 45.00;
-        default:
-          return 50.00;
-      }
-    }
-
-    if (widget.packageType == "Compulsory & Voluntary") {
-      switch (widget.vehicleType) {
-        case "Sedan":
-          return 95.00;
-        case "Pickup/SUV":
-          return 110.00;
-        case "MPV":
-          return 120.00;
-        default:
-          return 100.00;
-      }
-    }
-
-    if (widget.packageType == "Compulsory & Voluntary+") {
-      switch (widget.vehicleType) {
-        case "Sedan":
-          return 135.00;
-        case "Pickup/SUV":
-          return 150.00;
-        case "MPV":
-          return 165.00;
-        default:
-          return 140.00;
-      }
-    }
-
-    return 50.00;
-  }
-
-  /// =========================
-  /// GENERATE TDS ORDER ID
-  /// =========================
-  Future<String> _generateOrderId() async {
-    final counterRef =
-        FirebaseFirestore.instance.collection('counters').doc('orders');
-
-    return FirebaseFirestore.instance.runTransaction((transaction) async {
-      final snapshot = await transaction.get(counterRef);
-
-      int newCount = 1;
-      if (snapshot.exists) {
-        newCount = (snapshot.data()?['count'] ?? 0) + 1;
-      }
-
-      transaction.set(counterRef, {'count': newCount});
-
-      return 'TDS-${newCount.toString().padLeft(3, '0')}';
-    });
-  }
-
-  /// =========================
-  /// CREATE ORDER IF NEEDED
-  /// =========================
-  Future<void> _createOrderIfNeeded() async {
-    if (_orderDocId != null && _generatedOrderId != null) return;
-
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) throw Exception("User not logged in");
-
-    final generatedOrderId = await _generateOrderId();
-
-    final docRef = await FirebaseFirestore.instance.collection('orders').add({
-      'orderId': generatedOrderId,
-      'userId': user.uid,
-      'vehicleType': widget.vehicleType,
-      'packageType': widget.packageType,
-      'selectedItems': selectedItems,
-      'totalAmount': totalAmount,
-      'paymentMethod': 'QR / Receipt Upload',
-      'paymentStatus': 'Pending Receipt',
-      'status': 'Order Pending',
-      'createdAt': FieldValue.serverTimestamp(),
-      'statusHistory': [
-        {
-          'step': 'Order Pending',
-          'completed': true,
-          'time': DateTime.now().toIso8601String(),
-        },
-        {
-          'step': 'Order Received',
-          'completed': false,
-        },
-        {
-          'step': 'In Process',
-          'completed': false,
-        },
-        {
-          'step': 'On The Way',
-          'completed': false,
-        },
-        {
-          'step': 'Already Pickup',
-          'completed': false,
-        },
-      ],
-    });
-
-    _generatedOrderId = generatedOrderId;
-    _orderDocId = docRef.id;
-  }
-
-  /// =========================
-  /// DOWNLOAD QR CODE
-  /// =========================
+  // ================= QR DOWNLOAD =================
   Future<void> downloadQrCode() async {
-    try {
-      final byteData = await rootBundle.load('assets/qr.png');
-      final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/thaidrive_qr.png');
+    final byteData = await rootBundle.load('assets/qr.png');
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/qr.png');
 
-      await file.writeAsBytes(byteData.buffer.asUint8List());
-      await GallerySaver.saveImage(file.path);
+    await file.writeAsBytes(byteData.buffer.asUint8List());
+    await GallerySaver.saveImage(file.path);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("QR Code saved to gallery")),
-        );
-      }
-    } catch (e) {
-      debugPrint("Download QR error: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Failed to save QR Code")),
-        );
-      }
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("QR saved")),
+    );
   }
 
-  /// =========================
-  /// PICK RECEIPT IMAGE
-  /// =========================
+  // ================= PICK RECEIPT =================
   Future<void> pickReceipt(StateSetter setDialogState) async {
-    final XFile? file = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
+    final XFile? file = await _picker.pickImage(source: ImageSource.gallery);
 
     if (file != null) {
       setState(() {
         _receiptFile = File(file.path);
         _receiptSubmitted = false;
-        _receiptUrl = null;
       });
       setDialogState(() {});
     }
   }
 
-  /// =========================
-  /// UPLOAD RECEIPT TO FIREBASE
-  /// =========================
-  Future<void> uploadReceiptToFirebase() async {
+  // ================= FIREBASE UPLOAD =================
+  Future<String> uploadFile(File file, String path) async {
+    final ref = FirebaseStorage.instance.ref().child(path);
+    await ref.putFile(file);
+    return await ref.getDownloadURL();
+  }
+
+  // ================= FINAL SUBMIT =================
+  Future<void> confirmPayment() async {
     if (_receiptFile == null) return;
 
     try {
-      setState(() {
-        _isUploading = true;
+      setState(() => _isUploading = true);
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("User not logged in");
+
+      final orderId = DateTime.now().millisecondsSinceEpoch.toString();
+
+      // 🔥 Upload vehicle grant
+      final vehicleUrl = await uploadFile(
+        widget.vehicleGrantFile,
+        'orders/$orderId/vehicle_grant.jpg',
+      );
+
+      // 🔥 Upload passports
+      List<String> passportUrls = [];
+      for (int i = 0; i < widget.passportFiles.length; i++) {
+        final url = await uploadFile(
+          widget.passportFiles[i],
+          'orders/$orderId/passport_${i + 1}.jpg',
+        );
+        passportUrls.add(url);
+      }
+
+      // 🔥 Upload receipt
+      final receiptUrl = await uploadFile(
+        _receiptFile!,
+        'orders/$orderId/receipt.jpg',
+      );
+
+      // 🔥 SAVE EVERYTHING
+      await FirebaseFirestore.instance.collection('orders').doc(orderId).set({
+        "orderId": orderId,
+
+        "customer": {
+          "name": widget.formData['name'],
+          "phone": widget.formData['phone'],
+          "userId": user.uid,
+        },
+
+        "trip": {
+          "vehicleType": widget.formData['vehicleType'],
+          "borderRoute": widget.formData['where'],
+          "passengers": widget.formData['passengers'],
+        },
+
+        "documents": {
+          "vehicleGrantUrl": vehicleUrl,
+          "passportUrls": passportUrls,
+        },
+
+        "payment": {
+          "method": "QR",
+          "status": "Submitted",
+          "receiptUrl": receiptUrl,
+          "submittedAt": Timestamp.now(),
+        },
+
+        "pricing": {
+          "totalPrice": totalAmount,
+        },
+
+        "status": "Order Pending",
+        "createdAt": Timestamp.now(),
       });
 
-      await _createOrderIfNeeded();
-
-      final fileName =
-          'receipt_${_generatedOrderId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-      final storageRef = FirebaseStorage.instance.ref('receipt/$fileName');
-
-      await storageRef.putFile(_receiptFile!);
-
-      final downloadUrl = await storageRef.getDownloadURL();
-
-      await FirebaseFirestore.instance
-          .collection('orders')
-          .doc(_orderDocId)
-          .set({
-        'receiptUrl': downloadUrl,
-        'receiptFileName': fileName,
-        'paymentStatus': 'Pending Verification',
-        'receiptUploadedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      setState(() {
-        _receiptUrl = downloadUrl;
-        _receiptSubmitted = true;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Receipt uploaded successfully")),
-        );
-      }
-    } catch (e) {
-      debugPrint("Upload receipt error: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to upload receipt: $e")),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isUploading = false;
-        });
-      }
-    }
-  }
-
-  /// =========================
-  /// CONFIRM PAYMENT
-  /// =========================
-  Future<void> confirmPayment() async {
-    try {
-      await _createOrderIfNeeded();
-
-      await FirebaseFirestore.instance
-          .collection('orders')
-          .doc(_orderDocId)
-          .set({
-        'paymentStatus': 'Payment Submitted',
-        'paymentConfirmedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ReceiptPage(
-              totalAmount: totalAmount,
-              orderId: _generatedOrderId ?? "TDS-000",
-              selectedItems: selectedItems,
-            ),
+      // ✅ SUCCESS
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ReceiptPage(
+            totalAmount: totalAmount,
+            orderId: orderId,
+            selectedItems: ["Insurance"],
           ),
-        );
-      }
+        ),
+      );
     } catch (e) {
-      debugPrint("Confirm payment error: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to confirm payment: $e")),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    } finally {
+      setState(() => _isUploading = false);
     }
   }
 
-  /// =========================
-  /// UPLOAD RECEIPT DIALOG
-  /// =========================
-  void _showUploadReceiptDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return Dialog(
-              backgroundColor: Colors.transparent,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      "Upload Payment\nReceipt",
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF163B6D),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      "Upload your bank confirmation slip here to verify your transaction",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-
-                    GestureDetector(
-                      onTap: () => pickReceipt(setDialogState),
-                      child: Container(
-                        width: double.infinity,
-                        height: 220,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEAF5F4),
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(
-                            color: const Color(0xFF42C4B7),
-                            width: 1.6,
-                          ),
-                        ),
-                        child: _receiptFile == null
-                            ? Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 74,
-                                    height: 74,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.08),
-                                          blurRadius: 10,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: const Icon(
-                                      Icons.upload_rounded,
-                                      size: 38,
-                                      color: Color(0xFF18B7A8),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 18),
-                                  const Text(
-                                    "Tap to select image",
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  const Text(
-                                    "JPG OR PNG ONLY",
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Stack(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: Image.file(
-                                      _receiptFile!,
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                  Positioned(
-                                    top: 10,
-                                    right: 10,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _receiptFile = null;
-                                          _receiptSubmitted = false;
-                                          _receiptUrl = null;
-                                        });
-                                        setDialogState(() {});
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: Colors.black54,
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                        ),
-                                        child: const Icon(
-                                          Icons.close,
-                                          color: Colors.white,
-                                          size: 18,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    bottom: 10,
-                                    left: 10,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 5,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black54,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Text(
-                                        "Tap to change",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _receiptFile != null
-                              ? const Color(0xFF18B7A8)
-                              : const Color(0xFFE3E3E3),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(28),
-                          ),
-                          elevation: 0,
-                        ),
-                        onPressed: (_receiptFile != null && !_isUploading)
-                            ? () async {
-                                await uploadReceiptToFirebase();
-                                if (mounted && _receiptSubmitted) {
-                                  Navigator.pop(context);
-                                }
-                              }
-                            : null,
-                        child: _isUploading
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2.5,
-                                ),
-                              )
-                            : const Text(
-                                "Submit Receipt",
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
+  // ================= UI =================
   @override
   Widget build(BuildContext context) {
-    final bool canConfirm = _receiptSubmitted && _receiptUrl != null;
+    final canConfirm = _receiptSubmitted;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFEAF3F8),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF163B6D),
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          "Payment",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 30),
+      appBar: AppBar(title: const Text("Payment")),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const SizedBox(height: 8),
+            Text("RM $totalAmount"),
 
-            const Text(
-              "TOTAL PAYABLE",
-              style: TextStyle(
-                color: Colors.black54,
-                fontSize: 16,
-                letterSpacing: 0.8,
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            Text(
-              "RM ${totalAmount.toStringAsFixed(2)}",
-              style: const TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+            ElevatedButton(
+              onPressed: downloadQrCode,
+              child: const Text("Download QR"),
             ),
 
-            const SizedBox(height: 26),
-
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8F6F5),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Image.asset(
-                "assets/qr.png",
-                height: 258,
-                fit: BoxFit.contain,
-              ),
+            ElevatedButton(
+              onPressed: _showUploadDialog,
+              child: const Text("Upload Receipt"),
             ),
 
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
 
-            const Text(
-              "Scan via your preferred banking app",
-              style: TextStyle(
-                color: Colors.black54,
-                fontSize: 14,
-              ),
-            ),
-
-            const SizedBox(height: 18),
-
-            SizedBox(
-              width: 216,
-              height: 36,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFB8CCEC),
-                  foregroundColor: const Color(0xFF163B6D),
-                  elevation: 3,
-                  shadowColor: Colors.black26,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                ),
-                onPressed: downloadQrCode,
-                icon: const Icon(Icons.download_rounded),
-                label: const Text(
-                  "Download QR Code",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 26),
-
-            const Text(
-              "CNT ENTERPRISE CHANGLUN TOURS",
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 10),
-
-            Image.asset(
-              "assets/pbank.png",
-              height: 34,
-            ),
-
-            const SizedBox(height: 24),
-
-            SizedBox(
-              width: 216,
-              height: 36,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF163B6D),
-                  foregroundColor: Colors.white,
-                  elevation: 5,
-                  shadowColor: Colors.black26,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                ),
-                onPressed: _showUploadReceiptDialog,
-                child: const Text(
-                  "Upload Payment Receipt",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            if (_receiptSubmitted) ...[
-              const Text(
-                "Receipt uploaded successfully",
-                style: TextStyle(
-                  color: Colors.green,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-
-            const SizedBox(height: 10),
-
-            InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: () {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => const HomePage()),
-                  (route) => false,
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 16,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDFF5E8),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.payments_outlined,
-                        color: Color(0xFF35B56A),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Pay with Cash",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 18,
-                              color: Colors.black,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            "Pay in person at our local branch (CNT ENTERPRISE)",
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right, color: Colors.grey),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 28),
-
-            SizedBox(
-              width: double.infinity,
-              height: 58,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: canConfirm
-                      ? const Color(0xFF18B7A8)
-                      : const Color(0xFF9EDDD6),
-                  foregroundColor: Colors.white,
-                  elevation: 6,
-                  shadowColor: Colors.black26,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                onPressed: canConfirm
-                    ? () async {
-                        await confirmPayment();
-                      }
-                    : null,
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Confirm Payment",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(width: 10),
-                    Icon(Icons.arrow_forward),
-                  ],
-                ),
-              ),
+            ElevatedButton(
+              onPressed: canConfirm ? confirmPayment : null,
+              child: _isUploading
+                  ? const CircularProgressIndicator()
+                  : const Text("Confirm Payment"),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // ================= DIALOG =================
+  void _showUploadDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text("Upload Receipt"),
+              content: GestureDetector(
+                onTap: () => pickReceipt(setDialogState),
+                child: Container(
+                  height: 150,
+                  color: Colors.grey[200],
+                  child: _receiptFile == null
+                      ? const Icon(Icons.add)
+                      : Image.file(_receiptFile!, fit: BoxFit.cover),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    if (_receiptFile != null) {
+                      setState(() => _receiptSubmitted = true);
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: const Text("Submit"),
+                )
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

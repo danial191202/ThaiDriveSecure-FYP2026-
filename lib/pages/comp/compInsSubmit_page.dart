@@ -1,18 +1,17 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:thaidrivesecure/payment/payment_page.dart';
 
 class CompInsSubmit extends StatefulWidget {
   final Map<String, dynamic> formData;
-  final String vehicleGrantPath;
-  final List<String> passportPaths;
+  final File vehicleGrantFile;
+  final List<File> passportFiles;
 
   const CompInsSubmit({
     super.key,
     required this.formData,
-    required this.vehicleGrantPath,
-    required this.passportPaths,
+    required this.vehicleGrantFile,
+    required this.passportFiles,
   });
 
   @override
@@ -20,7 +19,6 @@ class CompInsSubmit extends StatefulWidget {
 }
 
 class _CompInsSubmitState extends State<CompInsSubmit> {
-  String selectedDelivery = "Take Away";
   bool isSubmitting = false;
 
   // ================= DATA =================
@@ -47,121 +45,18 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
   double get totalPrice =>
       (insurancePrice + tdacPrice + tm23Price).toDouble();
 
-  // ================= CHECKOUT =================
-  Future<void> checkout() async {
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("User not logged in")),
-      );
-      return;
-    }
-
-    setState(() => isSubmitting = true);
-
-    try {
-      final orderRef =
-          FirebaseFirestore.instance.collection('orders').doc();
-
-      final orderId = orderRef.id;
-      final now = Timestamp.now();
-
-      await orderRef.set({
-        "orderId": orderId,
-
-        "customer": {
-          "name": fullName,
-          "phone": phone,
-          "userId": user.uid,
-        },
-
-        "trip": {
-          "vehicleType": vehicleType,
-          "borderRoute": borderRoute,
-          "travelDay":
-              "${_formatDate(departDate)} - ${_formatDate(returnDate)} ($durationLabel)",
-          "passengers": passengers,
-        },
-
-        "package": {
-          "selected": ["Insurance Compulsory", "TM2/3", "TDAC"],
-        },
-
-        "pricing": {
-          "insurancePrice": insurancePrice,
-          "tdacPrice": tdacPrice,
-          "tm23Price": tm23Price,
-          "totalPrice": totalPrice,
-        },
-
-        "documents": {
-          "passportUrls": widget.passportPaths,
-          "vehicleGrantUrl": widget.vehicleGrantPath,
-        },
-
-        "payment": {
-          "method": "QR / Receipt Upload",
-          "status": "Pending",
-          "receiptUrl": null,
-          "receiptFileName": null,
-          "uploadedAt": null,
-          "confirmedAt": null,
-        },
-
-        "delivery": {
-          "method": selectedDelivery,
-        },
-
-        "status": {
-          "current": "Order Pending",
-          "history": [
-            {
-              "step": "Order Pending",
-              "completed": true,
-              "time": now,
-            },
-            {
-              "step": "Order Received",
-              "completed": false,
-            },
-            {
-              "step": "In Process",
-              "completed": false,
-            },
-            {
-              "step": "On The Way",
-              "completed": false,
-            },
-            {
-              "step": "Already Pickup",
-              "completed": false,
-            }
-          ]
-        },
-
-        "createdAt": now,
-      });
-
-      if (!mounted) return;
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => PaymentPage(
-            vehicleType: vehicleType,
-            packageType: "Compulsory",
-            orderId: orderId,
-          ),
+  // ================= NAVIGATE TO PAYMENT =================
+  void goToPayment() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentPage(
+          formData: widget.formData,
+          vehicleGrantFile: widget.vehicleGrantFile,
+          passportFiles: widget.passportFiles,
         ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Submission failed: $e")),
-      );
-    } finally {
-      if (mounted) setState(() => isSubmitting = false);
-    }
+      ),
+    );
   }
 
   // ================= UI =================
@@ -186,7 +81,6 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
             _orderReviewCard(),
             const Spacer(),
 
-            // ✅ FIXED BUTTON STYLE
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -194,16 +88,14 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF163B6D),
                 ),
-                onPressed: isSubmitting ? null : checkout,
-                child: isSubmitting
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        "Checkout >",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                onPressed: isSubmitting ? null : goToPayment,
+                child: const Text(
+                  "Proceed to Payment >",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ],
@@ -251,8 +143,10 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Total Price",
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                "Total Price",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               Text(
                 "RM $totalPrice",
                 style: const TextStyle(

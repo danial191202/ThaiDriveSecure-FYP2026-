@@ -125,7 +125,7 @@ class _VoluPlusInsState extends State<VoluPlusIns> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => VoluPlusInsUpload(
+        builder: (_) => VoluInsUpload(
           name: _nameController.text.trim(),
           phone: _phoneController.text.trim(),
           where: "$_from → $_to",
