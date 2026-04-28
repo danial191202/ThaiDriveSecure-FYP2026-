@@ -15,6 +15,7 @@ class VoluInsUpload extends StatefulWidget {
   final String whenDate;
   final int passengerCount;
   final String duration;
+  final String deliveryMethod;
   final String vehicleType;
   final DateTime departDate;
   final DateTime returnDate;
@@ -27,6 +28,7 @@ class VoluInsUpload extends StatefulWidget {
     required this.whenDate,
     required this.passengerCount,
     required this.duration,
+    required this.deliveryMethod,
     required this.vehicleType,
     required this.departDate,
     required this.returnDate,
@@ -97,6 +99,7 @@ class _VoluInsUploadState extends State<VoluInsUpload> {
             'passengers': widget.passengerCount,
             'vehicleType': widget.vehicleType,
             'duration': widget.duration,
+            'deliveryMethod': widget.deliveryMethod,
             'departDate': widget.departDate,
             'returnDate': widget.returnDate,
           },

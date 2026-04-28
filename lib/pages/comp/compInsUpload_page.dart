@@ -6,7 +6,6 @@ import 'package:path_provider/path_provider.dart';
 // ignore: depend_on_referenced_packages
 import 'package:path/path.dart' as path;
 
-// 👉 CHANGE: go to PaymentPage instead
 import 'package:thaidrivesecure/payment/payment_page.dart';
 
 class CompInsUpload extends StatefulWidget {
@@ -48,26 +47,18 @@ class _CompInsUploadState extends State<CompInsUpload> {
   @override
   void initState() {
     super.initState();
-
-    // ✅ Reset state properly
     vehicleGrantImage = null;
     passportImages = List.generate(widget.passengerCount, (_) => null);
   }
 
-  // ================= SAVE IMAGE LOCALLY =================
   Future<File> _saveImagePermanently(XFile image) async {
     final directory = await getApplicationDocumentsDirectory();
     final fileName =
         "${DateTime.now().millisecondsSinceEpoch}_${path.basename(image.path)}";
 
-    final savedImage = await File(
-      image.path,
-    ).copy('${directory.path}/$fileName');
-
-    return savedImage;
+    return File(image.path).copy('${directory.path}/$fileName');
   }
 
-  // ================= PICK IMAGE =================
   Future<void> pickImage({required bool isVehicleGrant, int? index}) async {
     final XFile? picked = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -87,7 +78,6 @@ class _CompInsUploadState extends State<CompInsUpload> {
     }
   }
 
-  // ================= SUBMIT (NO FIREBASE HERE) =================
   Future<void> submitDocuments() async {
     if (vehicleGrantImage == null ||
         passportImages.any((img) => img == null)) {
@@ -97,7 +87,6 @@ class _CompInsUploadState extends State<CompInsUpload> {
       return;
     }
 
-    // ✅ Navigate to PaymentPage and pass FILES (not URLs)
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -116,7 +105,7 @@ class _CompInsUploadState extends State<CompInsUpload> {
                 .inDays
                 .abs() + 1,
             'packages': ['Insurance Compulsory', 'TM2/3', 'TDAC'],
-            'deliveryMethod': widget.deliveryMethod, 
+            'deliveryMethod': widget.deliveryMethod,
           },
           vehicleGrantFile: vehicleGrantImage!,
           passportFiles: passportImages.cast<File>(),
@@ -129,114 +118,243 @@ class _CompInsUploadState extends State<CompInsUpload> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEAF6FB),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: const BackButton(color: Colors.black),
-        title: const Text(
-          "Upload Documents",
-          style: TextStyle(color: Colors.black),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Please upload all required document",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+      backgroundColor: const Color(0xFFF2F4F7),
+      body: Column(
+        children: [
+          _header(),
+          _stepper(),
 
-            const SizedBox(height: 20),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _infoBox(),
+                  const SizedBox(height: 16),
 
-            const Text(
-              "1. Vehicle Grant",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            uploadBox(
-              image: vehicleGrantImage,
-              onTap: () => pickImage(isVehicleGrant: true),
-            ),
-
-            const SizedBox(height: 20),
-
-            const Text(
-              "2. Passport",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const Text(
-              "*Please upload all passengers in the vehicle*",
-              style: TextStyle(color: Colors.red),
-            ),
-
-            const SizedBox(height: 10),
-
-            ...List.generate(widget.passengerCount, (index) {
-              return uploadBox(
-                image: passportImages[index],
-                label: "Passenger ${index + 1} Passport",
-                onTap: () =>
-                    pickImage(isVehicleGrant: false, index: index),
-              );
-            }),
-
-            const SizedBox(height: 30),
-
-            Center(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF163B6D),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 50,
-                    vertical: 14,
+                  _uploadCard(
+                    title: "Vehicle Registration",
+                    subtitle: "Grant/VOC",
+                    image: vehicleGrantImage,
+                    onTap: () => pickImage(isVehicleGrant: true),
                   ),
-                ),
-                onPressed: submitDocuments,
-                child: const Text("Continue to Payment"),
+
+                  const SizedBox(height: 16),
+
+                  ...List.generate(widget.passengerCount, (index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _uploadCard(
+                        title: "Identification Card or Passport",
+                        subtitle: "Passenger ${index + 1}",
+                        image: passportImages[index],
+                        onTap: () =>
+                            pickImage(isVehicleGrant: false, index: index),
+                      ),
+                    );
+                  }),
+                ],
               ),
             ),
-          ],
+          ),
+
+          _bottomButton(),
+        ],
+      ),
+    );
+  }
+
+  // 🔵 HEADER
+  Widget _header() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.only(top: 50, bottom: 16),
+      color: const Color(0xFF1F3C68),
+      child: const Center(
+        child: Text(
+          "Upload Documents",
+          style: TextStyle(color: Colors.white, fontSize: 16),
         ),
       ),
     );
   }
 
-  // ================= UPLOAD BOX =================
-  Widget uploadBox({
-    File? image,
-    String? label,
+  Widget _stepper() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Row(
+        children: [
+          Expanded(child: _step("1", "Personal\nInformations", true)),
+          _line(),
+          Expanded(child: _step("2", "Upload\nDocuments", false)),
+          _line(),
+          Expanded(child: _step("3", "Payment\n ", false)),
+        ],
+      ),
+    );
+  }
+
+  Widget _step(String num, String label, bool active) {
+    return Column(
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: active ? const Color(0xFF1E3D72) : const Color(0xFFE2E6EC),
+            border: Border.all(
+              color: active ? const Color(0xFF1E3D72) : const Color(0xFFD3D8E1),
+            ),
+          ),
+          child: Text(
+            num,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: active ? Colors.white : const Color(0xFFA0A7B3),
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              height: 1.6,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 10,
+            color: active ? const Color(0xFF1E3D72) : const Color(0xFFB6BDC8),
+            fontWeight: FontWeight.w500,
+            height: 1.2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _line() {
+    return Container(
+      width: 70,
+      height: 1.5,
+      margin: const EdgeInsets.only(bottom: 26),
+      color: const Color(0xFFDCE1E8),
+    );
+  }
+
+  // 🔵 INFO BOX
+  Widget _infoBox() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.info, color: Colors.blue),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              "Please upload clear, legible photos. Ensure all text is readable.",
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🔵 UPLOAD CARD
+  Widget _uploadCard({
+    required String title,
+    required String subtitle,
+    required File? image,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 120,
-        margin: const EdgeInsets.only(top: 10, bottom: 10),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.black45),
-          borderRadius: BorderRadius.circular(10),
-          color: Colors.white,
-        ),
-        child: Center(
-          child: image == null
-              ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.add, size: 40),
-                    if (label != null) Text(label),
-                  ],
-                )
-              : ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.file(
-                    image,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                  ),
+    final isUploaded = image != null;
+    final color = isUploaded ? Colors.green : Colors.red;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.description),
+              const SizedBox(width: 8),
+              Text(title,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
                 ),
+                child: Text(
+                  isUploaded ? "UPLOADED" : "REQUIRED",
+                  style: TextStyle(color: color, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(subtitle, style: const TextStyle(color: Colors.grey)),
+
+          const SizedBox(height: 12),
+
+          GestureDetector(
+            onTap: onTap,
+            child: Container(
+              height: 120,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: image == null
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.camera_alt, size: 30),
+                          SizedBox(height: 6),
+                          Text("Tap to upload"),
+                        ],
+                      ),
+                    )
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(image, fit: BoxFit.cover),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🔵 BUTTON
+  Widget _bottomButton() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.teal,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          ),
+          onPressed: submitDocuments,
+          child: const Text("Next"),
         ),
       ),
     );

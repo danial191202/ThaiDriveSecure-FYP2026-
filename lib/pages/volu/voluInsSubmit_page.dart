@@ -23,8 +23,14 @@ class VoluInsSubmit extends StatefulWidget {
 }
 
 class _VoluInsSubmitState extends State<VoluInsSubmit> {
-  String selectedDelivery = "Take Away";
+  late String selectedDelivery;
   bool isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedDelivery = widget.formData['deliveryMethod'] ?? "Take Away";
+  }
 
       // ================= DATA =================
     String get fullName => widget.formData['name'] ?? "-";

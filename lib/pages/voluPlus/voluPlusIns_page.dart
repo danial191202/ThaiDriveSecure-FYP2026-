@@ -133,6 +133,7 @@ class _VoluPlusInsState extends State<VoluPlusIns> {
               "${formatDate(_departDate)} – ${formatDate(_returnDate)} ($totalDays days)",
           passengerCount: _passenger,
           duration: _duration,
+          deliveryMethod: "Take Away",
           vehicleType: widget.vehicleType,
           departDate: _departDate!,
           returnDate: _returnDate!,

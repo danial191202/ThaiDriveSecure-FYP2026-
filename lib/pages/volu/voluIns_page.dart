@@ -45,6 +45,7 @@ class _VoluInsState extends State<VoluIns> {
   bool isPressed = false;
 
   String _duration = "9 Days";
+  String _deliveryMethod = "Take Away";
 
   List<String> get durationList {
     if (widget.vehicleType == "Motorcycle") {
@@ -133,6 +134,7 @@ class _VoluInsState extends State<VoluIns> {
               "${formatDate(_departDate)} – ${formatDate(_returnDate)} ($totalDays days)",
           passengerCount: _passenger,
           duration: _duration,
+          deliveryMethod: _deliveryMethod,
           vehicleType: widget.vehicleType,
           departDate: _departDate!,
           returnDate: _returnDate!,
@@ -192,7 +194,7 @@ class _VoluInsState extends State<VoluIns> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Insurance : Compulsory"),
+                    const Text("Insurance : Voluntary"),
                     const SizedBox(height: 6),
                     const Text(
                       "TM2/3 : Driver’s Car Information",
@@ -321,6 +323,15 @@ class _VoluInsState extends State<VoluIns> {
                       _duration,
                       durationList,
                       (v) => setState(() => _duration = v!),
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    dropdown(
+                      "Delivery Method",
+                      _deliveryMethod,
+                      ["Via PDF", "Deliver", "Take Away"],
+                      (v) => setState(() => _deliveryMethod = v!),
                     ),
 
                     const SizedBox(height: 24),

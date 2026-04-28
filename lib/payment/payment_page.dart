@@ -1,4 +1,4 @@
-// 🔥 FINAL VERSION WITH DELIVERY METHOD
+// 🔥 UI UPDATED ONLY (LOGIC 100% PRESERVED)
 
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -37,7 +37,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
   double get totalAmount => 120.00;
 
-  // ================= QR DOWNLOAD =================
   Future<void> downloadQrCode() async {
     final byteData = await rootBundle.load('assets/qr.png');
     final tempDir = await getTemporaryDirectory();
@@ -51,7 +50,6 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
-  // ================= PICK RECEIPT =================
   Future<void> pickReceipt(StateSetter setDialogState) async {
     final XFile? file = await _picker.pickImage(source: ImageSource.gallery);
 
@@ -64,14 +62,12 @@ class _PaymentPageState extends State<PaymentPage> {
     }
   }
 
-  // ================= FIREBASE UPLOAD =================
   Future<String> uploadFile(File file, String path) async {
     final ref = FirebaseStorage.instance.ref().child(path);
     await ref.putFile(file);
     return await ref.getDownloadURL();
   }
 
-  // ================= FINAL SUBMIT =================
   Future<void> confirmPayment() async {
     if (_receiptFile == null) return;
 
@@ -83,7 +79,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
       final orderId = DateTime.now().millisecondsSinceEpoch.toString();
 
-      // 🔥 Upload documents
       final vehicleUrl = await uploadFile(
         widget.vehicleGrantFile,
         'orders/$orderId/vehicle_grant.jpg',
@@ -103,52 +98,41 @@ class _PaymentPageState extends State<PaymentPage> {
         'orders/$orderId/receipt.jpg',
       );
 
-      // 🔥 SAVE EVERYTHING (UPDATED HERE)
       await FirebaseFirestore.instance.collection('orders').doc(orderId).set({
         "orderId": orderId,
-
         "customer": {
           "name": widget.formData['name'],
           "phone": widget.formData['phone'],
           "userId": user.uid,
         },
-
         "trip": {
           "vehicleType": widget.formData['vehicleType'],
           "borderRoute": widget.formData['where'],
           "passengers": widget.formData['passengers'],
         },
-
         "documents": {
           "vehicleGrantUrl": vehicleUrl,
           "passportUrls": passportUrls,
         },
-
         "payment": {
           "method": "QR",
           "status": "Submitted",
           "receiptUrl": receiptUrl,
           "submittedAt": Timestamp.now(),
         },
-
         "travel": {
           "departDate": widget.formData['departDate'],
           "returnDate": widget.formData['returnDate'],
           "days": widget.formData['travelDays'],
           "duration": widget.formData['duration'],
         },
-
         "packages": widget.formData['packages'] ?? [],
-        
-        // ✅ NEW DELIVERY FIELD
         "delivery": {
           "method": widget.formData['deliveryMethod'] ?? "Via PDF",
         },
-
         "pricing": {
           "totalPrice": totalAmount,
         },
-
         "status": "Order Pending",
         "createdAt": Timestamp.now(),
       });
@@ -173,117 +157,372 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   // ================= UI =================
+
   @override
   Widget build(BuildContext context) {
     final canConfirm = _receiptSubmitted;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFEAF3F8),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF163B6D),
-        elevation: 0,
-        centerTitle: true,
-        leading: const BackButton(color: Colors.white),
-        title: const Text("Secure Payment",
-            style: TextStyle(color: Colors.white)),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                _stepCircle("1", false),
-                _stepLine(),
-                _stepCircle("2", false),
-                _stepLine(),
-                _stepCircle("3", true),
-              ],
-            ),
+      backgroundColor: const Color(0xFFF2F4F7),
+      body: Column(
+        children: [
+          _header(),
+          _stepper(),
 
-            const SizedBox(height: 25),
-
-            const Text("TOTAL PAYABLE"),
-            Text("RM ${totalAmount.toStringAsFixed(2)}",
-                style: const TextStyle(
-                    fontSize: 28, fontWeight: FontWeight.bold)),
-
-            const SizedBox(height: 20),
-
-            Container(
+          Expanded(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
+              child: Column(
+                children: [
+                  const Text("TOTAL PAYABLE",
+                      style: TextStyle(color: Colors.grey)),
+                  const SizedBox(height: 6),
+                  Text("RM ${totalAmount.toStringAsFixed(2)}",
+                      style: const TextStyle(
+                          fontSize: 28, fontWeight: FontWeight.bold)),
+
+                  const SizedBox(height: 20),
+
+                  _qrCard(),
+
+                  const SizedBox(height: 16),
+
+                  const Text("CNT ENTERPRISE CHANGLUN TOURS",
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+
+                  const SizedBox(height: 6),
+
+                  Image.asset("assets/pbank.png", height: 30),
+
+                  const SizedBox(height: 20),
+
+                  _uploadButton(),
+
+                  const SizedBox(height: 12),
+
+                  Row(
+                    children: [
+                      const Expanded(child: Divider()),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 10),
+                        child: Text("or"),
+                      ),
+                      const Expanded(child: Divider()),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  _cashCard(),
+
+                  if (canConfirm) ...[
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF36A9A6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        onPressed: _isUploading ? null : confirmPayment,
+                        child: _isUploading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                "Confirm Payment",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              child: Image.asset("assets/qr.png", height: 220),
             ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            const SizedBox(height: 20),
+  // 🔵 HEADER
+  Widget _header() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.only(top: 50, bottom: 16),
+      color: const Color(0xFF1F3C68),
+      child: const Center(
+        child: Text("Secure Payment",
+            style: TextStyle(color: Colors.white, fontSize: 16)),
+      ),
+    );
+  }
 
-            ElevatedButton(
-              onPressed: _showUploadDialog,
-              child: const Text("Upload Payment Receipt"),
+  // 🔵 STEPPER
+    Widget _stepper() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Row(
+        children: [
+          Expanded(child: _step("1", "Personal\nInformations", true)),
+          _line(),
+          Expanded(child: _step("2", "Upload\nDocuments", false)),
+          _line(),
+          Expanded(child: _step("3", "Payment\n ", false)),
+        ],
+      ),
+    );
+  }
+
+  Widget _step(String num, String label, bool active) {
+    return Column(
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: active ? const Color(0xFF1E3D72) : const Color(0xFFE2E6EC),
+            border: Border.all(
+              color: active ? const Color(0xFF1E3D72) : const Color(0xFFD3D8E1),
             ),
-
-            const SizedBox(height: 20),
-
-            ElevatedButton(
-              onPressed: canConfirm ? confirmPayment : null,
-              child: _isUploading
-                  ? const CircularProgressIndicator()
-                  : const Text("Confirm Payment"),
+          ),
+          child: Text(
+            num,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: active ? Colors.white : const Color(0xFFA0A7B3),
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              height: 1.6,
             ),
-          ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 10,
+            color: active ? const Color(0xFF1E3D72) : const Color(0xFFB6BDC8),
+            fontWeight: FontWeight.w500,
+            height: 1.2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _line() {
+    return Container(
+      width: 70,
+      height: 1.5,
+      margin: const EdgeInsets.only(bottom: 26),
+      color: const Color(0xFFDCE1E8),
+    );
+  }
+
+  // 🔵 QR CARD
+  Widget _qrCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          const Text("DuitNow",
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          Image.asset("assets/qr.png", height: 180),
+          const SizedBox(height: 8),
+          const Text("Scan via your preferred banking app",
+              style: TextStyle(fontSize: 12)),
+          TextButton(
+            onPressed: downloadQrCode,
+            child: const Text("Download QR Code"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🔵 UPLOAD BUTTON
+  Widget _uploadButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _receiptSubmitted
+              ? const Color(0xFF36A9A6)
+              : const Color(0xFF1F3C68),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+        onPressed: _showUploadDialog,
+        child: Text(
+          _receiptSubmitted ? "Receipt Uploaded" : "Upload Payment Receipt",
         ),
       ),
     );
   }
 
-  Widget _stepCircle(String text, bool active) {
-    return CircleAvatar(
-      radius: 14,
-      backgroundColor:
-          active ? const Color(0xFF163B6D) : Colors.grey.shade300,
-      child: Text(text,
-          style: TextStyle(
-              color: active ? Colors.white : Colors.black, fontSize: 12)),
+  // 🔵 CASH CARD
+  Widget _cashCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.attach_money, color: Colors.green),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text("Pay with Cash\nPay in person at our local branch"),
+          ),
+          Icon(Icons.arrow_forward_ios, size: 14),
+        ],
+      ),
     );
   }
 
-  Widget _stepLine() {
-    return const Expanded(child: Divider());
-  }
-
+  // ================= DIALOG =================
   void _showUploadDialog() {
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text("Upload Receipt"),
-              content: GestureDetector(
-                onTap: () => pickReceipt(setDialogState),
-                child: Container(
-                  height: 150,
-                  color: Colors.grey[200],
-                  child: _receiptFile == null
-                      ? const Icon(Icons.add)
-                      : Image.file(_receiptFile!, fit: BoxFit.cover),
+            return Dialog(
+              insetPadding: const EdgeInsets.symmetric(horizontal: 18),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F5F7),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      "Upload Payment Receipt",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFF1E3D72),
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      "Upload your bank confirmation slip here to verify your transaction",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFF8A94A2),
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    GestureDetector(
+                      onTap: () => pickReceipt(setDialogState),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD5ECEA),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFF48BDB5),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: _receiptFile == null
+                            ? const Column(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 28,
+                                    backgroundColor: Color(0xFFEAF2F2),
+                                    child: Icon(Icons.upload_rounded,
+                                        size: 30, color: Color(0xFF45BE79)),
+                                  ),
+                                  SizedBox(height: 10),
+                                  Text(
+                                    "Tap to select files",
+                                    style: TextStyle(
+                                      color: Color(0xFF131A22),
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 27,
+                                    ),
+                                  ),
+                                  SizedBox(height: 6),
+                                  Text(
+                                    "PDF, JPG OR PNG (MAX 10MB)",
+                                    style: TextStyle(
+                                      color: Color(0xFF6D7785),
+                                      fontSize: 12,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.file(
+                                  _receiptFile!,
+                                  height: 180,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF39ADA7),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                        ),
+                        onPressed: () {
+                          if (_receiptFile != null) {
+                            setState(() => _receiptSubmitted = true);
+                            Navigator.pop(context);
+                          }
+                        },
+                        child: const Text(
+                          "Submit Receipt",
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    if (_receiptFile != null) {
-                      setState(() => _receiptSubmitted = true);
-                      Navigator.pop(context);
-                    }
-                  },
-                  child: const Text("Submit"),
-                )
-              ],
             );
           },
         );
