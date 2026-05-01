@@ -6,7 +6,7 @@ import 'package:path_provider/path_provider.dart';
 // ignore: depend_on_referenced_packages
 import 'package:path/path.dart' as path;
 
-import 'package:thaidrivesecure/payment/payment_page.dart';
+import 'package:thaidrivesecure/pages/comp/compInsSubmit_page.dart';
 
 class CompInsUpload extends StatefulWidget {
   final String name;
@@ -87,31 +87,125 @@ class _CompInsUploadState extends State<CompInsUpload> {
       return;
     }
 
+    final int totalPrice = _calculateTotalPrice();
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => PaymentPage(
-          formData: {
-            'name': widget.name,
-            'phone': widget.phone,
-            'where': widget.where,
-            'vehicleType': widget.vehicleType,
-            'passengers': widget.passengerCount,
-            'duration': widget.duration,
-            'departDate': widget.departDate,
-            'returnDate': widget.returnDate,
-            'travelDays': widget.departDate
-                .difference(widget.returnDate)
-                .inDays
-                .abs() + 1,
-            'packages': ['Insurance Compulsory', 'TM2/3', 'TDAC'],
-            'deliveryMethod': widget.deliveryMethod,
-          },
-          vehicleGrantFile: vehicleGrantImage!,
-          passportFiles: passportImages.cast<File>(),
+        builder: (_) => CompInsSubmit(
+          fullName: widget.name,
+          phone: widget.phone,
+          destination: widget.where,
+          startDate: widget.departDate,
+          endDate: widget.returnDate,
+          passengerCount: widget.passengerCount,
+          vehicleType: widget.vehicleType,
+          packageType: "Insurance Compulsory",
+          duration: widget.duration,
+          totalPrice: totalPrice.toDouble(),
         ),
       ),
     );
+  }
+
+  int _calculateTotalPrice() {
+    int insurancePrice = 0;
+
+    switch (widget.vehicleType) {
+      case "Pickup/SUV":
+        switch (widget.duration) {
+          case "9 Days":
+            insurancePrice = 50;
+            break;
+          case "19 Days":
+            insurancePrice = 65;
+            break;
+          case "1 Month":
+            insurancePrice = 90;
+            break;
+          case "3 Months":
+            insurancePrice = 150;
+            break;
+          case "6 Months":
+            insurancePrice = 240;
+            break;
+          case "1 Year":
+            insurancePrice = 420;
+            break;
+        }
+        break;
+      case "MPV":
+        switch (widget.duration) {
+          case "9 Days":
+            insurancePrice = 55;
+            break;
+          case "19 Days":
+            insurancePrice = 75;
+            break;
+          case "1 Month":
+            insurancePrice = 100;
+            break;
+          case "3 Months":
+            insurancePrice = 170;
+            break;
+          case "6 Months":
+            insurancePrice = 280;
+            break;
+          case "1 Year":
+            insurancePrice = 480;
+            break;
+        }
+        break;
+      case "Motorcycle":
+        switch (widget.duration) {
+          case "9 Days":
+            insurancePrice = 25;
+            break;
+          case "19 Days":
+            insurancePrice = 35;
+            break;
+          case "1 Month":
+            insurancePrice = 50;
+            break;
+          case "3 Months":
+            insurancePrice = 80;
+            break;
+          case "6 Months":
+            insurancePrice = 130;
+            break;
+          case "1 Year":
+            insurancePrice = 220;
+            break;
+        }
+        break;
+      case "Sedan":
+      default:
+        switch (widget.duration) {
+          case "9 Days":
+            insurancePrice = 40;
+            break;
+          case "19 Days":
+            insurancePrice = 55;
+            break;
+          case "1 Month":
+            insurancePrice = 75;
+            break;
+          case "3 Months":
+            insurancePrice = 130;
+            break;
+          case "6 Months":
+            insurancePrice = 210;
+            break;
+          case "1 Year":
+            insurancePrice = 370;
+            break;
+        }
+        break;
+    }
+
+    final int tdacPrice = widget.passengerCount * 2;
+    const int tm23Price = 8;
+    return insurancePrice + tdacPrice + tm23Price;
   }
 
   // ================= UI =================
@@ -184,9 +278,9 @@ class _CompInsUploadState extends State<CompInsUpload> {
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       child: Row(
         children: [
-          Expanded(child: _step("1", "Personal\nInformations", true)),
+          Expanded(child: _step("1", "Personal\nInformations", false)),
           _line(),
-          Expanded(child: _step("2", "Upload\nDocuments", false)),
+          Expanded(child: _step("2", "Upload\nDocuments", true)),
           _line(),
           Expanded(child: _step("3", "Payment\n ", false)),
         ],
@@ -341,22 +435,24 @@ class _CompInsUploadState extends State<CompInsUpload> {
   }
 
   // 🔵 BUTTON
-  Widget _bottomButton() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.teal,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+Widget _bottomButton() {
+  return Padding(
+    padding: const EdgeInsets.all(16),
+    child: SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.teal,
+          foregroundColor: Colors.white, // ✅ ADD THIS
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
           ),
-          onPressed: submitDocuments,
-          child: const Text("Next"),
         ),
+        onPressed: submitDocuments,
+        child: const Text("Next"),
       ),
-    );
-  }
+    ),
+  );
+}
 }

@@ -146,310 +146,545 @@ class _VoluInsState extends State<VoluIns> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEAF6FB),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 24),
+      backgroundColor: const Color(0xFFF0F2F6),
+      body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              decoration: const BoxDecoration(color: Color(0xFF163B6D)),
-              child: Column(
-                children: [
-                  const SizedBox(height: 30),
-                  Image.asset(vehicleImage, height: 120),
-                  const SizedBox(height: 12),
-                  const Text(
-                    "Voluntary Package",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Divider(
-                    color: Colors.white54,
-                    thickness: 1,
-                    indent: 40,
-                    endIndent: 40,
-                  ),
-                  Text(
-                    "Type of Vehicle: ${widget.vehicleType}",
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                ],
-              ),
-            ),
-
-            Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Form(
-                key: _formKey,
+            _header(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(10, 12, 10, 18),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Insurance : Voluntary"),
-                    const SizedBox(height: 6),
-                    const Text(
-                      "TM2/3 : Driver’s Car Information",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 16),
-
-                    inputField(
-                      "Name",
-                      _nameController,
-                      validator: (v) =>
-                          v == null || v.isEmpty ? "Name required" : null,
-                    ),
-
-                    inputField(
-                      "No. Telephone",
-                      _phoneController,
-                      keyboard: TextInputType.phone,
-                      maxLength: 11,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      validator: (v) => v == null || v.length < 8
-                          ? "Valid phone required"
-                          : null,
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: dropdown(
-                            "From",
-                            _from,
-                            fromPlaces,
-                            (v) => setState(() => _from = v!),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.arrow_forward, size: 22),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: dropdown(
-                            "To",
-                            _to,
-                            toPlaces,
-                            (v) => setState(() => _to = v!),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: calendarField(
-                            label: "Depart date",
-                            value: formatDate(_departDate),
-                            onTap: () async {
-                              DateTime? picked = await showDatePicker(
-                                context: context,
-                                initialDate: DateTime.now(),
-                                firstDate: DateTime.now(),
-                                lastDate: DateTime.now().add(
-                                  const Duration(days: 365),
-                                ),
-                              );
-
-                              if (picked != null) {
-                                setState(() {
-                                  _departDate = picked;
-                                  _returnDate = null;
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: calendarField(
-                            label: "Return date",
-                            value: formatDate(_returnDate),
-                            onTap: _departDate == null
-                                ? () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          "Select depart date first",
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                : () async {
-                                    DateTime? picked = await showDatePicker(
-                                      context: context,
-                                      initialDate: _departDate!,
-                                      firstDate: _departDate!,
-                                      lastDate: DateTime.now().add(
-                                        const Duration(days: 365),
-                                      ),
-                                    );
-
-                                    if (picked != null) {
-                                      setState(() => _returnDate = picked);
-                                    }
-                                  },
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    dropdown(
-                      "Passenger",
-                      _passenger.toString(),
-                      List.generate(7, (i) => (i + 1).toString()),
-                      (v) => setState(() => _passenger = int.parse(v!)),
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    dropdown(
-                      "Insurance Duration",
-                      _duration,
-                      durationList,
-                      (v) => setState(() => _duration = v!),
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    dropdown(
-                      "Delivery Method",
-                      _deliveryMethod,
-                      ["Via PDF", "Deliver", "Take Away"],
-                      (v) => setState(() => _deliveryMethod = v!),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    Center(
-                      child: AnimatedScale(
-                        scale: isPressed ? 1.08 : 1.0,
-                        duration: const Duration(milliseconds: 150),
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF163B6D),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 70,
-                              vertical: 16,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                          ),
-                          onPressed: isLoading ? null : submit,
-                          child: isLoading
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  "Next",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ),
+                    _stepper(),
+                    const SizedBox(height: 12),
+                    _packageSection(),
+                    const SizedBox(height: 12),
+                    _noteBox(),
+                    const SizedBox(height: 12),
+                    _formCard(),
                   ],
                 ),
               ),
             ),
+            _bottomButton(),
           ],
         ),
       ),
     );
+  }
+
+  Widget _header() {
+    return Container(
+      color: const Color(0xFF1E3D72),
+      height: 80,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                size: 18, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+          const Expanded(
+            child: Text(
+              "Voluntary Insurance Package",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepper() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Row(
+        children: [
+          Expanded(child: _step("1", "Personal\nInformations", true)),
+          _line(),
+          Expanded(child: _step("2", "Upload\nDocuments", false)),
+          _line(),
+          Expanded(child: _step("3", "Payment\n ", false)),
+        ],
+      ),
+    );
+  }
+
+  Widget _step(String num, String label, bool active) {
+    return Column(
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: active ? const Color(0xFF1E3D72) : const Color(0xFFE2E6EC),
+            border: Border.all(
+              color: active ? const Color(0xFF1E3D72) : const Color(0xFFD3D8E1),
+            ),
+          ),
+          child: Text(
+            num,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: active ? Colors.white : const Color(0xFFA0A7B3),
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              height: 1.6,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 10,
+            color: active ? const Color(0xFF1E3D72) : const Color(0xFFB6BDC8),
+            fontWeight: FontWeight.w500,
+            height: 1.2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _line() {
+    return Container(
+      width: 58,
+      height: 1.5,
+      margin: const EdgeInsets.only(bottom: 26),
+      color: const Color(0xFFDCE1E8),
+    );
+  }
+
+  Widget _packageSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 14, 0, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE9EDF3),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Voluntary\nInsurance Package",
+                  style: TextStyle(
+                    fontSize: 30,
+                    height: 0.9,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF143864),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2FA57D),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    widget.vehicleType.toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "INCLUDED ADD-ONS",
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Color(0xFF98A2B3),
+                    letterSpacing: 0.3,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  "TM2 / TM3 Form : RM8",
+                  style: TextStyle(
+                    color: Color(0xFF556070),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  "TDAC : RM2 per person",
+                  style: TextStyle(
+                    color: Color(0xFF556070),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Image.asset(vehicleImage, height: 120, fit: BoxFit.contain),
+        ],
+      ),
+    );
+  }
+
+  Widget _noteBox() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFECEE),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Color(0xFFE2A100), size: 16),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              "Please ensure the number of passengers is accurate for TDAC processing.",
+              style: TextStyle(
+                fontSize: 10.5,
+                color: Color(0xFFCB2B39),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _formCard() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x140D1A2B),
+            blurRadius: 14,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            inputField(
+              "FULL NAME (As per official documents)",
+              _nameController,
+              icon: Icons.person_outline_rounded,
+              hint: "John Doe",
+              validator: (v) => v == null || v.isEmpty ? "Name required" : null,
+            ),
+            inputField(
+              "NO. TELEPHONE",
+              _phoneController,
+              hint: "012-34567890",
+              icon: Icons.call_outlined,
+              keyboard: TextInputType.phone,
+              maxLength: 11,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              validator: (v) =>
+                  v == null || v.length < 8 ? "Valid phone required" : null,
+            ),
+            Row(
+              children: [
+                Expanded(
+                    child: dropdown(
+                        "FROM", _from, fromPlaces, (v) => setState(() => _from = v!))),
+                Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE9EDF3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.swap_horiz_rounded,
+                        size: 15, color: Color(0xFF718096)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                    child:
+                        dropdown("TO", _to, toPlaces, (v) => setState(() => _to = v!))),
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(
+                    child: calendarField(
+                        "DEPARTURE DATE", formatDate(_departDate), () => pickDate(true))),
+                const SizedBox(width: 8),
+                Expanded(
+                    child: calendarField(
+                        "RETURN DATE", formatDate(_returnDate), () => pickDate(false))),
+              ],
+            ),
+            dropdown("INSURANCE DURATION", _duration, durationList,
+                (v) => setState(() => _duration = v!)),
+            dropdown("PASSENGER", _passenger.toString(),
+                List.generate(7, (i) => (i + 1).toString()),
+                (v) => setState(() => _passenger = int.parse(v!))),
+            const Padding(
+              padding: EdgeInsets.only(bottom: 10),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "  * Incorrect details may delay processing",
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    color: Color(0xFFA0A7B3),
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ),
+            dropdown("DELIVERY METHOD", _deliveryMethod,
+                ["Via PDF", "Deliver", "Take Away"],
+                (v) => setState(() => _deliveryMethod = v!)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> pickDate(bool isDepart) async {
+    DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (picked != null) {
+      setState(() {
+        if (isDepart) {
+          _departDate = picked;
+          _returnDate = null;
+        } else {
+          _returnDate = picked;
+        }
+      });
+    }
   }
 
   Widget inputField(
     String label,
     TextEditingController controller, {
     TextInputType keyboard = TextInputType.text,
+    List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
     int? maxLength,
-    List<TextInputFormatter>? inputFormatters,
+    IconData? icon,
+    String? hint,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboard,
-        validator: validator,
-        maxLength: maxLength,
-        inputFormatters: inputFormatters,
-        decoration: InputDecoration(
-          labelText: label,
-          counterText: "",
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      ),
-    );
-  }
-
-  Widget dropdown(
-    String label,
-    String value,
-    List<String> items,
-    ValueChanged<String?> onChanged,
-  ) {
-    return DropdownButtonFormField<String>(
-      isExpanded: true,
-      value: value,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-      items: items
-          .map(
-            (e) => DropdownMenuItem(
-              value: e,
-              child: Text(e, overflow: TextOverflow.ellipsis),
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _labelText(label),
+          const SizedBox(height: 5),
+          TextFormField(
+            controller: controller,
+            keyboardType: keyboard,
+            inputFormatters: inputFormatters,
+            validator: validator,
+            maxLength: maxLength,
+            style: const TextStyle(
+              color: Color(0xFF44505E),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
             ),
-          )
-          .toList(),
-      onChanged: onChanged,
+            decoration: InputDecoration(
+              counterText: "",
+              hintText: hint ?? label,
+              hintStyle: const TextStyle(
+                color: Color(0xFFA9B1BC),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+              prefixIcon: icon == null
+                  ? null
+                  : Icon(icon, size: 18, color: const Color(0xFF9AA3AE)),
+              filled: true,
+              fillColor: const Color(0xFFF1F3F6),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(9),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget calendarField({
+  Widget _labelText(String text) {
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        color: Color(0xFF818B98),
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.25,
+      ),
+    );
+  }
+
+  Widget _dropdownDisplayText(String label, String value) {
+    final bool isPassenger = label.toUpperCase() == "PASSENGER";
+    final String displayValue = isPassenger ? "$value Person" : value;
+    return Text(
+      displayValue,
+      style: const TextStyle(
+        color: Color(0xFF44505E),
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+      ),
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _calendarDisplayText(String value) {
+    return Text(
+      value.isEmpty ? "--/--/----" : value,
+      style: TextStyle(
+        color: value.isEmpty ? const Color(0xFFA9B1BC) : const Color(0xFF44505E),
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+  }
+
+  Widget _lightDropdownBox({
     required String label,
-    required String value,
-    required VoidCallback onTap,
+    required Widget child,
+    VoidCallback? onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _labelText(label),
+          const SizedBox(height: 5),
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(9),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F3F6),
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Row(
+                children: [
+                  Expanded(child: child),
+                  const Icon(Icons.keyboard_arrow_down_rounded,
+                      color: Color(0xFF8C96A3), size: 20),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget dropdown(String label, String value, List<String> items,
+      ValueChanged<String?> onChanged) {
+    return PopupMenuButton<String>(
+      onSelected: (v) => onChanged(v),
+      itemBuilder: (context) {
+        final bool isPassenger = label.toUpperCase() == "PASSENGER";
+        return items
+            .map((e) => PopupMenuItem<String>(
+                  value: e,
+                  child: Text(
+                    isPassenger ? "$e Person" : e,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ))
+            .toList();
+      },
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: IgnorePointer(
+        child: _lightDropdownBox(
+          label: label,
+          child: _dropdownDisplayText(label, value),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(value.isEmpty ? "Select date" : value),
-            const Icon(Icons.calendar_today, size: 18),
-          ],
+      ),
+    );
+  }
+
+  Widget calendarField(String label, String value, VoidCallback onTap) {
+    return _lightDropdownBox(
+      label: label,
+      onTap: onTap,
+      child: Row(
+        children: [
+          const Icon(Icons.calendar_today_outlined,
+              size: 16, color: Color(0xFF9AA3AE)),
+          const SizedBox(width: 8),
+          Expanded(child: _calendarDisplayText(value)),
+        ],
+      ),
+    );
+  }
+
+  Widget _bottomButton() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 16),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF2BAE9A),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          ),
+          onPressed: isLoading ? null : submit,
+          child: isLoading
+              ? const CircularProgressIndicator(color: Colors.white)
+              : const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Next",
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
+                    SizedBox(width: 8),
+                    Icon(Icons.arrow_forward_rounded),
+                  ],
+                ),
         ),
       ),
     );

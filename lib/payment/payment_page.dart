@@ -13,15 +13,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'receipt_page.dart';
 
 class PaymentPage extends StatefulWidget {
-  final Map<String, dynamic> formData;
-  final File vehicleGrantFile;
-  final List<File> passportFiles;
+  final Map<String, dynamic>? formData;
+  final File? vehicleGrantFile;
+  final List<File>? passportFiles;
+  final double? totalPrice;
+  final Map<String, dynamic>? orderData;
 
   const PaymentPage({
     super.key,
-    required this.formData,
-    required this.vehicleGrantFile,
-    required this.passportFiles,
+    this.formData,
+    this.vehicleGrantFile,
+    this.passportFiles,
+    this.totalPrice,
+    this.orderData,
   });
 
   @override
@@ -35,7 +39,24 @@ class _PaymentPageState extends State<PaymentPage> {
   bool _isUploading = false;
   bool _receiptSubmitted = false;
 
-  double get totalAmount => 120.00;
+  Map<String, dynamic> get _resolvedFormData {
+    if (widget.formData != null) return widget.formData!;
+    return {
+      "name": widget.orderData?["fullName"] ?? "-",
+      "phone": widget.orderData?["phone"] ?? "-",
+      "where": widget.orderData?["destination"] ?? "-",
+      "vehicleType": "",
+      "passengers": 0,
+      "departDate": null,
+      "returnDate": null,
+      "travelDays": 0,
+      "duration": "",
+      "deliveryMethod": "Via PDF",
+      "packages": const <String>[],
+    };
+  }
+
+  double get totalAmount => widget.totalPrice ?? 120.00;
 
   Future<void> downloadQrCode() async {
     final byteData = await rootBundle.load('assets/qr.png');
@@ -74,23 +95,30 @@ class _PaymentPageState extends State<PaymentPage> {
     try {
       setState(() => _isUploading = true);
 
+      final formData = _resolvedFormData;
+
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception("User not logged in");
 
       final orderId = DateTime.now().millisecondsSinceEpoch.toString();
 
-      final vehicleUrl = await uploadFile(
-        widget.vehicleGrantFile,
-        'orders/$orderId/vehicle_grant.jpg',
-      );
+      String? vehicleUrl;
+      if (widget.vehicleGrantFile != null) {
+        vehicleUrl = await uploadFile(
+          widget.vehicleGrantFile!,
+          'orders/$orderId/vehicle_grant.jpg',
+        );
+      }
 
       List<String> passportUrls = [];
-      for (int i = 0; i < widget.passportFiles.length; i++) {
-        final url = await uploadFile(
-          widget.passportFiles[i],
-          'orders/$orderId/passport_${i + 1}.jpg',
-        );
-        passportUrls.add(url);
+      if (widget.passportFiles != null) {
+        for (int i = 0; i < widget.passportFiles!.length; i++) {
+          final url = await uploadFile(
+            widget.passportFiles![i],
+            'orders/$orderId/passport_${i + 1}.jpg',
+          );
+          passportUrls.add(url);
+        }
       }
 
       final receiptUrl = await uploadFile(
@@ -100,15 +128,16 @@ class _PaymentPageState extends State<PaymentPage> {
 
       await FirebaseFirestore.instance.collection('orders').doc(orderId).set({
         "orderId": orderId,
+        "userId": user.uid,
         "customer": {
-          "name": widget.formData['name'],
-          "phone": widget.formData['phone'],
+          "name": formData['name'],
+          "phone": formData['phone'],
           "userId": user.uid,
         },
         "trip": {
-          "vehicleType": widget.formData['vehicleType'],
-          "borderRoute": widget.formData['where'],
-          "passengers": widget.formData['passengers'],
+          "vehicleType": formData['vehicleType'],
+          "borderRoute": formData['where'],
+          "passengers": formData['passengers'],
         },
         "documents": {
           "vehicleGrantUrl": vehicleUrl,
@@ -121,14 +150,18 @@ class _PaymentPageState extends State<PaymentPage> {
           "submittedAt": Timestamp.now(),
         },
         "travel": {
-          "departDate": widget.formData['departDate'],
-          "returnDate": widget.formData['returnDate'],
-          "days": widget.formData['travelDays'],
-          "duration": widget.formData['duration'],
+          "departDate": formData['departDate'],
+          "returnDate": formData['returnDate'],
+          "days": formData['travelDays'],
+          "duration": formData['duration'],
         },
-        "packages": widget.formData['packages'] ?? [],
+        "duration": (formData['duration'] ?? formData['travelDays'] ?? 0),
+        "deliveryMethod": formData['deliveryMethod'] ?? "Via PDF",
+        "startDate": formData['departDate'],
+        "endDate": formData['returnDate'],
+        "packages": formData['packages'] ?? [],
         "delivery": {
-          "method": widget.formData['deliveryMethod'] ?? "Via PDF",
+          "method": formData['deliveryMethod'] ?? "Via PDF",
         },
         "pricing": {
           "totalPrice": totalAmount,
@@ -140,11 +173,14 @@ class _PaymentPageState extends State<PaymentPage> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => ReceiptPage(
-            totalAmount: totalAmount,
-            orderId: orderId,
-            selectedItems: ["Insurance"],
-          ),
+        builder: (_) => ReceiptPage(
+          totalAmount: totalAmount,
+          orderId: orderId,
+          selectedItems: ["Insurance"],
+          receiptImage: _receiptFile ?? receiptUrl,
+          createdAt: DateTime.now(),
+          receiptCounter: 1, // replace with your real counter source if available
+        ),
         ),
       );
     } catch (e) {
@@ -272,11 +308,11 @@ class _PaymentPageState extends State<PaymentPage> {
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       child: Row(
         children: [
-          Expanded(child: _step("1", "Personal\nInformations", true)),
+          Expanded(child: _step("1", "Personal\nInformations", false)),
           _line(),
           Expanded(child: _step("2", "Upload\nDocuments", false)),
           _line(),
-          Expanded(child: _step("3", "Payment\n ", false)),
+          Expanded(child: _step("3", "Payment\n ", true)),
         ],
       ),
     );
@@ -357,25 +393,27 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   // 🔵 UPLOAD BUTTON
-  Widget _uploadButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: _receiptSubmitted
-              ? const Color(0xFF36A9A6)
-              : const Color(0xFF1F3C68),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-          padding: const EdgeInsets.symmetric(vertical: 14),
+Widget _uploadButton() {
+  return SizedBox(
+    width: double.infinity,
+    child: ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _receiptSubmitted
+            ? const Color(0xFF36A9A6)
+            : const Color(0xFF1F3C68),
+        foregroundColor: Colors.white, // ✅ ADD THIS
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),
         ),
-        onPressed: _showUploadDialog,
-        child: Text(
-          _receiptSubmitted ? "Receipt Uploaded" : "Upload Payment Receipt",
-        ),
+        padding: const EdgeInsets.symmetric(vertical: 14),
       ),
-    );
-  }
+      onPressed: _showUploadDialog,
+      child: Text(
+        _receiptSubmitted ? "Receipt Uploaded" : "Upload Payment Receipt",
+      ),
+    ),
+  );
+}
 
   // 🔵 CASH CARD
   Widget _cashCard() {
@@ -463,11 +501,11 @@ class _PaymentPageState extends State<PaymentPage> {
                                   ),
                                   SizedBox(height: 10),
                                   Text(
-                                    "Tap to select files",
+                                    "Tap to select images",
                                     style: TextStyle(
                                       color: Color(0xFF131A22),
                                       fontWeight: FontWeight.w700,
-                                      fontSize: 27,
+                                      fontSize: 20,
                                     ),
                                   ),
                                   SizedBox(height: 6),

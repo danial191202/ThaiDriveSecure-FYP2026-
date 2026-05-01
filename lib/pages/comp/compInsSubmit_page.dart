@@ -1,17 +1,30 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:thaidrivesecure/payment/payment_page.dart';
 
 class CompInsSubmit extends StatefulWidget {
-  final Map<String, dynamic> formData;
-  final File vehicleGrantFile;
-  final List<File> passportFiles;
+  final String fullName;
+  final String phone;
+  final String destination;
+  final DateTime startDate;
+  final DateTime endDate;
+  final int passengerCount;
+  final String vehicleType;
+  final String packageType;
+  final String duration;
+  final double totalPrice;
 
   const CompInsSubmit({
     super.key,
-    required this.formData,
-    required this.vehicleGrantFile,
-    required this.passportFiles,
+    required this.fullName,
+    required this.phone,
+    required this.destination,
+    required this.startDate,
+    required this.endDate,
+    required this.passengerCount,
+    required this.vehicleType,
+    required this.packageType,
+    required this.duration,
+    required this.totalPrice,
   });
 
   @override
@@ -22,38 +35,104 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
   bool isSubmitting = false;
 
   // ================= DATA =================
-  String get fullName => widget.formData['name'] ?? "-";
-  String get phone => widget.formData['phone'] ?? "-";
-  String get borderRoute => widget.formData['where'] ?? "-";
-
-  DateTime get departDate =>
-      widget.formData['departDate'] ?? DateTime.now();
-
-  DateTime get returnDate =>
-      widget.formData['returnDate'] ??
-      DateTime.now().add(const Duration(days: 1));
-
-  int get passengers => widget.formData['passengers'] ?? 1;
-  String get durationLabel => widget.formData['duration'] ?? "9 Days";
-  String get vehicleType => widget.formData['vehicleType'] ?? 'Sedan';
+  String get fullName => widget.fullName;
+  String get phone => widget.phone;
+  String get borderRoute => widget.destination;
+  DateTime get departDate => widget.startDate;
+  DateTime get returnDate => widget.endDate;
+  int get passengers => widget.passengerCount;
+  String get durationLabel => widget.duration;
+  String get vehicleType => widget.vehicleType;
 
   // ================= PRICE =================
-  int get insurancePrice => 25;
+  int get insurancePrice {
+    switch (vehicleType) {
+      case "Pickup/SUV":
+        switch (durationLabel) {
+          case "9 Days":
+            return 50;
+          case "19 Days":
+            return 65;
+          case "1 Month":
+            return 90;
+          case "3 Months":
+            return 150;
+          case "6 Months":
+            return 240;
+          case "1 Year":
+            return 420;
+          default:
+            return 0;
+        }
+      case "MPV":
+        switch (durationLabel) {
+          case "9 Days":
+            return 55;
+          case "19 Days":
+            return 75;
+          case "1 Month":
+            return 100;
+          case "3 Months":
+            return 170;
+          case "6 Months":
+            return 280;
+          case "1 Year":
+            return 480;
+          default:
+            return 0;
+        }
+      case "Motorcycle":
+        switch (durationLabel) {
+          case "9 Days":
+            return 25;
+          case "19 Days":
+            return 35;
+          case "1 Month":
+            return 50;
+          case "3 Months":
+            return 80;
+          case "6 Months":
+            return 130;
+          case "1 Year":
+            return 220;
+          default:
+            return 0;
+        }
+      case "Sedan":
+      default:
+        switch (durationLabel) {
+          case "9 Days":
+            return 40;
+          case "19 Days":
+            return 55;
+          case "1 Month":
+            return 75;
+          case "3 Months":
+            return 130;
+          case "6 Months":
+            return 210;
+          case "1 Year":
+            return 370;
+          default:
+            return 0;
+        }
+    }
+  }
   int get tdacPrice => passengers * 2;
   int get tm23Price => 8;
 
-  double get totalPrice =>
-      (insurancePrice + tdacPrice + tm23Price).toDouble();
-
   // ================= NAVIGATE =================
-  void goToPayment() {
+  void _goToPayment() {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => PaymentPage(
-          formData: widget.formData,
-          vehicleGrantFile: widget.vehicleGrantFile,
-          passportFiles: widget.passportFiles,
+          totalPrice: widget.totalPrice,
+          orderData: {
+            "fullName": widget.fullName,
+            "phone": widget.phone,
+            "destination": widget.destination,
+          },
         ),
       ),
     );
@@ -102,9 +181,9 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       child: Row(
         children: [
-          Expanded(child: _step("1", "Personal\nInformations", true)),
+          Expanded(child: _step("1", "Personal\nInformations", false)),
           _line(),
-          Expanded(child: _step("2", "Upload\nDocuments", false)),
+          Expanded(child: _step("2", "Upload\nDocuments", true)),
           _line(),
           Expanded(child: _step("3", "Payment\n ", false)),
         ],
@@ -184,13 +263,13 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
 
           const Divider(height: 24),
 
-          const Text("1. Insurance Compulsory"),
+          Text("1. ${widget.packageType}"),
           const Text("2. TM2/3"),
           const Text("3. TDAC"),
 
           const Divider(height: 24),
 
-          _price("Insurance Compulsory", insurancePrice),
+          _price("${widget.packageType} ($durationLabel)", insurancePrice),
           _price("TM2/3", tm23Price),
           _price("TDAC (RM2 × $passengers)", tdacPrice),
 
@@ -202,7 +281,7 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
               const Text("Total Price",
                   style: TextStyle(fontWeight: FontWeight.bold)),
               Text(
-                "RM ${totalPrice.toStringAsFixed(1)}",
+                "RM ${widget.totalPrice.toStringAsFixed(1)}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.teal),
               ),
@@ -260,7 +339,7 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
               borderRadius: BorderRadius.circular(16),
             ),
           ),
-          onPressed: isSubmitting ? null : goToPayment,
+          onPressed: isSubmitting ? null : _goToPayment,
           child: const Text(
             "Checkout >",
             style: TextStyle(fontWeight: FontWeight.bold),

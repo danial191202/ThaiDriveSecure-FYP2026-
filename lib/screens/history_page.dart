@@ -13,6 +13,21 @@ class _HistoryPageState extends State<HistoryPage> {
   /// ✅ Default tab = Pending
   String selectedTab = "Pending";
 
+  DateTime? _toDateTime(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return "-";
+    final d = date.day.toString().padLeft(2, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final y = date.year.toString();
+    return "$d/$m/$y";
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
@@ -107,7 +122,16 @@ class _HistoryPageState extends State<HistoryPage> {
                         );
                       }
 
-                      final docs = snapshot.data!.docs;
+                      final docs = [...snapshot.data!.docs]
+                        ..sort((a, b) {
+                          final aData = a.data() as Map<String, dynamic>;
+                          final bData = b.data() as Map<String, dynamic>;
+                          final aCreated = _toDateTime(aData['createdAt']) ??
+                              DateTime.fromMillisecondsSinceEpoch(0);
+                          final bCreated = _toDateTime(bData['createdAt']) ??
+                              DateTime.fromMillisecondsSinceEpoch(0);
+                          return bCreated.compareTo(aCreated);
+                        });
 
                       /// ✅ Filter by selected tab using NEW status field
                       final filteredDocs = docs.where((doc) {
@@ -224,20 +248,23 @@ class _HistoryPageState extends State<HistoryPage> {
     String buttonText = status == "Pending" ? "View Order" : "View Receipt";
 
     final List<dynamic> selectedItems = item["selectedItems"] ?? [];
-    final bool hasTDAC = selectedItems.any(
-      (e) => e.toString().toLowerCase().contains("tdac"),
-    );
-    final bool hasTM = selectedItems.any(
-      (e) =>
-          e.toString().toLowerCase().contains("tm23") ||
-          e.toString().toLowerCase().contains("tm2") ||
-          e.toString().toLowerCase().contains("tm3"),
-    );
-
     final String packageName = _buildPackageName(selectedItems);
     final String orderId = item["orderId"] ?? "TDS-000";
     final double totalPrice =
         double.tryParse((item["totalAmount"] ?? item["totalPrice"] ?? 0).toString()) ?? 0.0;
+    final int duration = (item["duration"] ?? item["travel"]?["duration"] ?? item["travel"]?["days"] ?? 0) is int
+        ? (item["duration"] ?? item["travel"]?["duration"] ?? item["travel"]?["days"] ?? 0) as int
+        : int.tryParse((item["duration"] ?? item["travel"]?["duration"] ?? item["travel"]?["days"] ?? 0).toString()) ?? 0;
+    final String deliveryMethod = (item["deliveryMethod"] ??
+            item["delivery"]?["method"] ??
+            "-")
+        .toString();
+    final DateTime? startDate =
+        _toDateTime(item["startDate"] ?? item["travel"]?["departDate"]);
+    final DateTime? endDate =
+        _toDateTime(item["endDate"] ?? item["travel"]?["returnDate"]);
+    final String dateRangeText =
+        "${_formatDate(startDate)} - ${_formatDate(endDate)}";
 
     String dateText = "-";
     final createdAt = item["createdAt"];
@@ -334,15 +361,15 @@ class _HistoryPageState extends State<HistoryPage> {
             children: [
               const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
               const SizedBox(width: 8),
-              const Text(
-                "Order Record",
-                style: TextStyle(color: Colors.black54),
+              Text(
+                "$duration Days",
+                style: const TextStyle(color: Colors.black54),
               ),
               const SizedBox(width: 32),
               const Icon(Icons.receipt_long, size: 18, color: Colors.grey),
               const SizedBox(width: 8),
               Text(
-                hasTDAC ? "TDAC" : "No TDAC",
+                deliveryMethod,
                 style: const TextStyle(color: Colors.black54),
               ),
             ],
@@ -356,7 +383,7 @@ class _HistoryPageState extends State<HistoryPage> {
               const Icon(Icons.description, size: 18, color: Colors.grey),
               const SizedBox(width: 8),
               Text(
-                hasTM ? "TM23 / TM2 / TM3" : "No TM23/TM2/TM3",
+                dateRangeText,
                 style: const TextStyle(color: Colors.black54),
               ),
             ],

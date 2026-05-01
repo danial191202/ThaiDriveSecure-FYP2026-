@@ -6,7 +6,7 @@ import 'package:path_provider/path_provider.dart';
 // ignore: depend_on_referenced_packages
 import 'package:path/path.dart' as path;
 
-import 'package:thaidrivesecure/pages/volu/voluInsSubmit_page.dart';
+import 'package:thaidrivesecure/pages/voluPlus/voluPlusInsSubmit_page.dart';
 
 class VoluPlusInsUpload extends StatefulWidget {
   final String name;
@@ -88,7 +88,7 @@ class _VoluPlusInsUploadState extends State<VoluPlusInsUpload> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => VoluInsSubmit(
+        builder: (_) => VoluPlusInsSubmit(
           formData: {
             'name': widget.name,
             'phone': widget.phone,
