@@ -103,6 +103,9 @@ class _CompInsUploadState extends State<CompInsUpload> {
           packageType: "Insurance Compulsory",
           duration: widget.duration,
           totalPrice: totalPrice.toDouble(),
+          deliveryMethod: widget.deliveryMethod,
+          vehicleGrantFile: vehicleGrantImage,
+          passportFiles: passportImages.whereType<File>().toList(),
         ),
       ),
     );

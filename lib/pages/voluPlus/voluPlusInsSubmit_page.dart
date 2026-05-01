@@ -67,17 +67,17 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
       case "Pickup/SUV":
         switch (durationLabel) {
           case "9 Days":
-            return 110;
+            return 100;
           case "19 Days":
-            return 140;
+            return 130;
           case "1 Month":
-            return 175;
+            return 160;
           case "3 Months":
-            return 300;
+            return 280;
           case "6 Months":
-            return 480;
+            return 450;
           case "1 Year":
-            return 780;
+            return 750;
           default:
             return 0;
         }
@@ -85,17 +85,17 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
       case "MPV":
         switch (durationLabel) {
           case "9 Days":
-            return 120;
+            return 110;
           case "19 Days":
-            return 160;
+            return 150;
           case "1 Month":
-            return 200;
+            return 180;
           case "3 Months":
-            return 340;
+            return 320;
           case "6 Months":
-            return 520;
+            return 500;
           case "1 Year":
-            return 880;
+            return 850;
           default:
             return 0;
         }
@@ -103,17 +103,17 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
       case "Motorcycle":
         switch (durationLabel) {
           case "9 Days":
-            return 55;
+            return 50;
           case "19 Days":
-            return 80;
+            return 70;
           case "1 Month":
-            return 100;
+            return 90;
           case "3 Months":
-            return 160;
+            return 150;
           case "6 Months":
-            return 260;
+            return 240;
           case "1 Year":
-            return 420;
+            return 400;
           default:
             return 0;
         }
@@ -122,17 +122,17 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
       default:
         switch (durationLabel) {
           case "9 Days":
-            return 95;
+            return 85;
           case "19 Days":
-            return 120;
+            return 110;
           case "1 Month":
-            return 150;
+            return 135;
           case "3 Months":
-            return 260;
+            return 240;
           case "6 Months":
-            return 420;
+            return 400;
           case "1 Year":
-            return 690;
+            return 650;
           default:
             return 0;
         }

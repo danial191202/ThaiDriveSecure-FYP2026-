@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:thaidrivesecure/history/receiptHistory_page.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -221,11 +222,22 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   /// ================= PACKAGE NAME BUILDER =================
-  String _buildPackageName(List<dynamic>? selectedItems) {
-    if (selectedItems == null || selectedItems.isEmpty) {
-      return "Insurance Package";
+  String _buildPackageName(Map<String, dynamic> item) {
+    final packageType = (item["packageType"] ?? "").toString().trim();
+    final vehicleType =
+        (item["vehicleType"] ?? item["trip"]?["vehicleType"] ?? "").toString().trim();
+
+    if (packageType.isNotEmpty) {
+      // "Insurance Compulsory" → "Compulsory"
+      final short = packageType.replaceFirst(RegExp(r'^Insurance\s*'), '');
+      return vehicleType.isNotEmpty
+          ? "Package $short ($vehicleType)"
+          : "Package $short";
     }
 
+    // fallback: old selectedItems list
+    final selectedItems = item["selectedItems"] as List<dynamic>?;
+    if (selectedItems == null || selectedItems.isEmpty) return "Insurance Package";
     return selectedItems.join(", ");
   }
 
@@ -247,8 +259,7 @@ class _HistoryPageState extends State<HistoryPage> {
 
     String buttonText = status == "Pending" ? "View Order" : "View Receipt";
 
-    final List<dynamic> selectedItems = item["selectedItems"] ?? [];
-    final String packageName = _buildPackageName(selectedItems);
+    final String packageName = _buildPackageName(item);
     final String orderId = item["orderId"] ?? "TDS-000";
     final double totalPrice =
         double.tryParse((item["totalAmount"] ?? item["totalPrice"] ?? 0).toString()) ?? 0.0;
@@ -419,7 +430,12 @@ class _HistoryPageState extends State<HistoryPage> {
                   elevation: 0,
                 ),
                 onPressed: () {
-                  // TODO: later add navigation
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ReceiptHistoryPage(order: item),
+                    ),
+                  );
                 },
                 child: Text(
                   buttonText,

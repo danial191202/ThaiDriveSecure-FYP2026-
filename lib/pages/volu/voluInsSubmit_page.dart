@@ -73,17 +73,17 @@ class _VoluInsSubmitState extends State<VoluInsSubmit> {
       case "Pickup/SUV":
         switch (durationLabel) {
           case "9 Days":
-            return 80;
+            return 75;
           case "19 Days":
-            return 105;
+            return 95;
           case "1 Month":
-            return 135;
+            return 120;
           case "3 Months":
-            return 225;
+            return 210;
           case "6 Months":
-            return 360;
+            return 340;
           case "1 Year":
-            return 600;
+            return 580;
           default:
             return 0;
         }
@@ -91,17 +91,17 @@ class _VoluInsSubmitState extends State<VoluInsSubmit> {
       case "MPV":
         switch (durationLabel) {
           case "9 Days":
-            return 90;
+            return 85;
           case "19 Days":
-            return 120;
+            return 110;
           case "1 Month":
-            return 150;
+            return 140;
           case "3 Months":
-            return 255;
+            return 240;
           case "6 Months":
-            return 400;
+            return 380;
           case "1 Year":
-            return 680;
+            return 650;
           default:
             return 0;
         }
@@ -109,17 +109,17 @@ class _VoluInsSubmitState extends State<VoluInsSubmit> {
       case "Motorcycle":
         switch (durationLabel) {
           case "9 Days":
-            return 40;
+            return 35;
           case "19 Days":
-            return 60;
+            return 50;
           case "1 Month":
-            return 75;
+            return 65;
           case "3 Months":
-            return 120;
+            return 110;
           case "6 Months":
-            return 190;
+            return 180;
           case "1 Year":
-            return 320;
+            return 300;
           default:
             return 0;
         }
@@ -128,17 +128,17 @@ class _VoluInsSubmitState extends State<VoluInsSubmit> {
       default:
         switch (durationLabel) {
           case "9 Days":
-            return 70;
+            return 60;
           case "19 Days":
-            return 90;
+            return 80;
           case "1 Month":
-            return 115;
+            return 100;
           case "3 Months":
-            return 195;
+            return 180;
           case "6 Months":
-            return 320;
+            return 300;
           case "1 Year":
-            return 530;
+            return 500;
           default:
             return 0;
         }

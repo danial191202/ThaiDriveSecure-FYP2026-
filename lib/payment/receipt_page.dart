@@ -27,11 +27,6 @@ class ReceiptPage extends StatefulWidget {
 class _ReceiptPageState extends State<ReceiptPage> {
   bool _showTick = false;
 
-  String generateReceiptId(int counter) {
-    final normalized = ((counter - 1) % 999) + 1;
-    return 'TDS-${normalized.toString().padLeft(3, '0')}';
-  }
-
   String _formatDate(DateTime dt) {
     final day = dt.day.toString().padLeft(2, '0');
     final month = dt.month.toString().padLeft(2, '0');
@@ -166,7 +161,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Receipt ID: ${generateReceiptId(widget.receiptCounter)}',
+            'Receipt ID: ${widget.orderId}',
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),

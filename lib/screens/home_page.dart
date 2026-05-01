@@ -7,7 +7,7 @@ import 'package:thaidrivesecure/screens/needs.dart';
 import 'package:thaidrivesecure/pages/volu/voluIns_page.dart';
 import 'package:thaidrivesecure/pages/comp/compIns_page.dart';
 import 'package:thaidrivesecure/screens/status_page.dart';
-import 'package:thaidrivesecure/screens/history_page.dart';
+import 'package:thaidrivesecure/history/history_page.dart';
 import 'package:thaidrivesecure/screens/setting_page.dart';
 import 'package:thaidrivesecure/pages/voluPlus/voluPlusIns_page.dart';
 

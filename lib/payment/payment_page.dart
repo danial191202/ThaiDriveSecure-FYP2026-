@@ -41,20 +41,35 @@ class _PaymentPageState extends State<PaymentPage> {
 
   Map<String, dynamic> get _resolvedFormData {
     if (widget.formData != null) return widget.formData!;
+    final packageType =
+        (widget.orderData?["packageType"] ?? "").toString();
     return {
       "name": widget.orderData?["fullName"] ?? "-",
       "phone": widget.orderData?["phone"] ?? "-",
       "where": widget.orderData?["destination"] ?? "-",
-      "vehicleType": "",
-      "passengers": 0,
-      "departDate": null,
-      "returnDate": null,
-      "travelDays": 0,
-      "duration": "",
-      "deliveryMethod": "Via PDF",
-      "packages": const <String>[],
+      "vehicleType": widget.orderData?["vehicleType"] ?? "",
+      "packageType": packageType,
+      "passengers": widget.orderData?["passengerCount"] ?? 0,
+      "departDate": widget.orderData?["startDate"],
+      "returnDate": widget.orderData?["endDate"],
+      "travelDays": widget.orderData?["duration"] ?? 0,
+      "duration": widget.orderData?["durationLabel"] ?? "",
+      "deliveryMethod": widget.orderData?["deliveryMethod"] ?? "Via PDF",
+      "insurancePrice": widget.orderData?["insurancePrice"] ?? 0.0,
+      "tmPrice": widget.orderData?["tmPrice"] ?? 8.0,
+      "tdacPrice": widget.orderData?["tdacPrice"] ?? 0.0,
+      "passengerCount": widget.orderData?["passengerCount"] ?? 0,
+      "packages": [
+        if (packageType.isNotEmpty) packageType,
+        "TM2/3",
+        "TDAC",
+      ],
     };
   }
+
+  // ── order id helpers ──
+  int _nextCounter(int current) => current >= 999 ? 1 : current + 1;
+  String _formatOrderId(int n) => 'TDS-${n.toString().padLeft(3, '0')}';
 
   double get totalAmount => widget.totalPrice ?? 120.00;
 
@@ -96,11 +111,25 @@ class _PaymentPageState extends State<PaymentPage> {
       setState(() => _isUploading = true);
 
       final formData = _resolvedFormData;
-
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception("User not logged in");
 
-      final orderId = DateTime.now().millisecondsSinceEpoch.toString();
+      // ── atomic cyclic counters (transaction prevents duplicate IDs) ──
+      final db = FirebaseFirestore.instance;
+      final orderCounterRef = db.collection('counters').doc('orderCounter');
+
+      late String orderId;
+
+      await db.runTransaction((tx) async {
+        final orderSnap = await tx.get(orderCounterRef);
+
+        final nextOrder =
+            _nextCounter((orderSnap.data()?['value'] as int?) ?? 0);
+
+        tx.set(orderCounterRef, {'value': nextOrder});
+
+        orderId = _formatOrderId(nextOrder); // TDS-XXX
+      });
 
       String? vehicleUrl;
       if (widget.vehicleGrantFile != null) {
@@ -126,7 +155,10 @@ class _PaymentPageState extends State<PaymentPage> {
         'orders/$orderId/receipt.jpg',
       );
 
-      await FirebaseFirestore.instance.collection('orders').doc(orderId).set({
+      final startDate = formData['departDate'];
+      final endDate = formData['returnDate'];
+
+      await db.collection('orders').doc(orderId).set({
         "orderId": orderId,
         "userId": user.uid,
         "customer": {
@@ -150,37 +182,57 @@ class _PaymentPageState extends State<PaymentPage> {
           "submittedAt": Timestamp.now(),
         },
         "travel": {
-          "departDate": formData['departDate'],
-          "returnDate": formData['returnDate'],
+          "departDate": startDate,
+          "returnDate": endDate,
           "days": formData['travelDays'],
           "duration": formData['duration'],
         },
-        "duration": (formData['duration'] ?? formData['travelDays'] ?? 0),
+        // ── top-level fields for history card ──
+        "vehicleType": formData['vehicleType'],
+        "packageType": formData['packageType'],
+        "duration": formData['travelDays'],
+        "durationLabel": formData['duration'],
         "deliveryMethod": formData['deliveryMethod'] ?? "Via PDF",
-        "startDate": formData['departDate'],
-        "endDate": formData['returnDate'],
-        "packages": formData['packages'] ?? [],
+        "insurancePrice": formData['insurancePrice'] ?? 0.0,
+        "tmPrice": formData['tmPrice'] ?? 8.0,
+        "tdacPrice": formData['tdacPrice'] ?? 0.0,
+        "passengerCount": formData['passengerCount'] ?? 0,
+        "startDate": startDate is DateTime
+            ? Timestamp.fromDate(startDate)
+            : startDate,
+        "endDate": endDate is DateTime
+            ? Timestamp.fromDate(endDate)
+            : endDate,
+        "packages": (formData['packages'] as List?)?.isNotEmpty == true
+            ? formData['packages']
+            : [
+                if ((formData['packageType'] ?? "").isNotEmpty)
+                  formData['packageType'],
+                "TM2/3",
+                "TDAC",
+              ],
         "delivery": {
           "method": formData['deliveryMethod'] ?? "Via PDF",
         },
         "pricing": {
           "totalPrice": totalAmount,
         },
-        "status": "Order Pending",
+        "totalPrice": totalAmount,
+        "status": "Pending",
         "createdAt": Timestamp.now(),
       });
 
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-        builder: (_) => ReceiptPage(
-          totalAmount: totalAmount,
-          orderId: orderId,
-          selectedItems: ["Insurance"],
-          receiptImage: _receiptFile ?? receiptUrl,
-          createdAt: DateTime.now(),
-          receiptCounter: 1, // replace with your real counter source if available
-        ),
+          builder: (_) => ReceiptPage(
+            totalAmount: totalAmount,
+            orderId: orderId,
+            selectedItems: ["Insurance"],
+            receiptImage: _receiptFile ?? receiptUrl,
+            createdAt: DateTime.now(),
+            receiptCounter: int.tryParse(orderId.replaceAll('TDS-', '')) ?? 1,
+          ),
         ),
       );
     } catch (e) {

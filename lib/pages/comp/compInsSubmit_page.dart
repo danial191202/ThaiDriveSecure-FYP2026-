@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:thaidrivesecure/payment/payment_page.dart';
 
@@ -12,6 +13,9 @@ class CompInsSubmit extends StatefulWidget {
   final String packageType;
   final String duration;
   final double totalPrice;
+  final String deliveryMethod;
+  final File? vehicleGrantFile;
+  final List<File> passportFiles;
 
   const CompInsSubmit({
     super.key,
@@ -25,6 +29,9 @@ class CompInsSubmit extends StatefulWidget {
     required this.packageType,
     required this.duration,
     required this.totalPrice,
+    this.deliveryMethod = "Via PDF",
+    this.vehicleGrantFile,
+    this.passportFiles = const [],
   });
 
   @override
@@ -33,6 +40,10 @@ class CompInsSubmit extends StatefulWidget {
 
 class _CompInsSubmitState extends State<CompInsSubmit> {
   bool isSubmitting = false;
+
+  String formatPrice(double value) {
+    return "RM ${value.toStringAsFixed(2)}";
+  }
 
   // ================= DATA =================
   String get fullName => widget.fullName;
@@ -43,6 +54,7 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
   int get passengers => widget.passengerCount;
   String get durationLabel => widget.duration;
   String get vehicleType => widget.vehicleType;
+  int get durationDays => returnDate.difference(departDate).inDays + 1;
 
   // ================= PRICE =================
   int get insurancePrice {
@@ -50,51 +62,51 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
       case "Pickup/SUV":
         switch (durationLabel) {
           case "9 Days":
-            return 50;
+            return 45;
           case "19 Days":
-            return 65;
+            return 60;
           case "1 Month":
-            return 90;
+            return 80;
           case "3 Months":
-            return 150;
+            return 140;
           case "6 Months":
-            return 240;
+            return 230;
           case "1 Year":
-            return 420;
+            return 400;
           default:
             return 0;
         }
       case "MPV":
         switch (durationLabel) {
           case "9 Days":
-            return 55;
+            return 50;
           case "19 Days":
-            return 75;
+            return 70;
           case "1 Month":
-            return 100;
+            return 90;
           case "3 Months":
-            return 170;
+            return 160;
           case "6 Months":
-            return 280;
+            return 260;
           case "1 Year":
-            return 480;
+            return 450;
           default:
             return 0;
         }
       case "Motorcycle":
         switch (durationLabel) {
           case "9 Days":
-            return 25;
+            return 20;
           case "19 Days":
-            return 35;
+            return 30;
           case "1 Month":
-            return 50;
+            return 40;
           case "3 Months":
-            return 80;
+            return 70;
           case "6 Months":
-            return 130;
+            return 120;
           case "1 Year":
-            return 220;
+            return 200;
           default:
             return 0;
         }
@@ -102,17 +114,17 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
       default:
         switch (durationLabel) {
           case "9 Days":
-            return 40;
+            return 35;
           case "19 Days":
-            return 55;
+            return 50;
           case "1 Month":
-            return 75;
+            return 65;
           case "3 Months":
-            return 130;
+            return 120;
           case "6 Months":
-            return 210;
+            return 200;
           case "1 Year":
-            return 370;
+            return 350;
           default:
             return 0;
         }
@@ -128,10 +140,25 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
       MaterialPageRoute(
         builder: (_) => PaymentPage(
           totalPrice: widget.totalPrice,
+          vehicleGrantFile: widget.vehicleGrantFile,
+          passportFiles: widget.passportFiles.isEmpty
+              ? null
+              : widget.passportFiles,
           orderData: {
             "fullName": widget.fullName,
             "phone": widget.phone,
             "destination": widget.destination,
+            "vehicleType": widget.vehicleType,
+            "packageType": widget.packageType,
+            "duration": durationDays,
+            "durationLabel": widget.duration,
+            "startDate": widget.startDate,
+            "endDate": widget.endDate,
+            "deliveryMethod": widget.deliveryMethod,
+            "insurancePrice": insurancePrice.toDouble(),
+            "tmPrice": tm23Price.toDouble(),
+            "tdacPrice": tdacPrice.toDouble(),
+            "passengerCount": widget.passengerCount,
           },
         ),
       ),
@@ -257,7 +284,7 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
           _row("Vehicle Type:", vehicleType),
           _row(
             "When:",
-            "${_formatDate(departDate)} - ${_formatDate(returnDate)} ($durationLabel)",
+            "${_formatDate(departDate)} - ${_formatDate(returnDate)} ($durationDays Days)",
           ),
           _row("Passenger:", passengers.toString()),
 
@@ -281,7 +308,7 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
               const Text("Total Price",
                   style: TextStyle(fontWeight: FontWeight.bold)),
               Text(
-                "RM ${widget.totalPrice.toStringAsFixed(1)}",
+                formatPrice(widget.totalPrice),
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.teal),
               ),
@@ -315,7 +342,7 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label),
-          Text("RM $price"),
+          Text(formatPrice(price.toDouble())),
         ],
       ),
     );
@@ -335,6 +362,7 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF1F3C68),
+            foregroundColor: Colors.white, // Text color
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
