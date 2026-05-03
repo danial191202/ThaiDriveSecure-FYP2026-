@@ -203,7 +203,7 @@ class _SignUpPageState extends State<SignUpPage> {
               /// FOOTER LOGO
               Center(
                 child: Image.asset(
-                  'assets/tds_memanjang logo.png',
+                  'assets/tsdLogoPjg.png',
                   width: 300,
                 ),
               ),

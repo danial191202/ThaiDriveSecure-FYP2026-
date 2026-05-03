@@ -1,12 +1,25 @@
-import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:io';
+import 'dart:ui' as ui;
 
-class ReceiptHistoryPage extends StatelessWidget {
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:gallery_saver_plus/gallery_saver.dart';
+import 'package:path_provider/path_provider.dart';
+
+class ReceiptHistoryPage extends StatefulWidget {
   final Map<String, dynamic> order;
 
   const ReceiptHistoryPage({super.key, required this.order});
 
-  // ── helpers (unchanged) ───────────────────────────────────
+  @override
+  State<ReceiptHistoryPage> createState() => _ReceiptHistoryPageState();
+}
+
+class _ReceiptHistoryPageState extends State<ReceiptHistoryPage> {
+  final GlobalKey _receiptCaptureKey = GlobalKey();
+  bool _downloading = false;
+
   String _fmt(double v) => "RM ${v.toStringAsFixed(2)}";
 
   String _formatDate(dynamic raw) {
@@ -23,10 +36,59 @@ class ReceiptHistoryPage extends StatelessWidget {
   double _toDouble(dynamic v) =>
       double.tryParse((v ?? 0).toString()) ?? 0.0;
 
-  // ── build ─────────────────────────────────────────────────
+  Future<void> _downloadReceipt() async {
+    if (_downloading) return;
+    setState(() => _downloading = true);
+    try {
+      await Future<void>.delayed(Duration.zero);
+      if (!mounted) return;
+
+      final boundary = _receiptCaptureKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+      if (boundary == null) {
+        _snack('Could not capture receipt');
+        return;
+      }
+
+      final dpr = MediaQuery.devicePixelRatioOf(context);
+      final image = await boundary.toImage(pixelRatio: dpr);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      image.dispose();
+
+      if (byteData == null) {
+        _snack('Could not encode receipt image');
+        return;
+      }
+
+      final receiptId = widget.order['orderId'] ?? "TDS-000";
+      final safeId = receiptId.toString().replaceAll(RegExp(r'[^\w\-]+'), '_');
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/receipt_$safeId.png');
+      await file.writeAsBytes(byteData.buffer.asUint8List());
+
+      final saved = await GallerySaver.saveImage(file.path);
+      if (!mounted) return;
+      if (saved == true) {
+        _snack('Receipt saved to your gallery');
+      } else {
+        _snack('Could not save. Allow Photos / Storage access in settings.');
+      }
+    } catch (e) {
+      if (mounted) _snack('Download failed: $e');
+    } finally {
+      if (mounted) setState(() => _downloading = false);
+    }
+  }
+
+  void _snack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // ── data (logic unchanged) ────────────────────────────
+    final order = widget.order;
     final receiptId = order['orderId'] ?? "TDS-000";
     final name = order['customer']?['name'] ?? order['fullName'] ?? "-";
     final phone = order['customer']?['phone'] ?? order['phone'] ?? "-";
@@ -73,19 +135,21 @@ class ReceiptHistoryPage extends StatelessWidget {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x14000000),
-                      blurRadius: 16,
-                      offset: Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Column(
+              child: RepaintBoundary(
+                key: _receiptCaptureKey,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x14000000),
+                        blurRadius: 16,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Column(
                   children: [
                     // ── HEADER ────────────────────────────
                     Padding(
@@ -238,6 +302,7 @@ class ReceiptHistoryPage extends StatelessWidget {
 
                   ],
                 ),
+                ),
               ),
             ),
           ),
@@ -257,16 +322,36 @@ class ReceiptHistoryPage extends StatelessWidget {
                   ),
                   elevation: 0,
                 ),
-                onPressed: () {
-                  // UI only
-                },
-                child: const Text(
-                  "Download Receipt",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                onPressed: _downloading ? null : _downloadReceipt,
+                child: _downloading
+                    ? const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            "Saving…",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      )
+                    : const Text(
+                        "Download Receipt",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
               ),
             ),
           ),
