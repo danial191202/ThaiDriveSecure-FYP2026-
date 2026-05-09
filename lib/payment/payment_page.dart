@@ -16,7 +16,7 @@ class PaymentPage extends StatefulWidget {
   final Map<String, dynamic>? formData;
   final File? vehicleGrantFile;
   final List<File>? passportFiles;
-  final double? totalPrice;
+  final double totalPrice;
   final Map<String, dynamic>? orderData;
 
   const PaymentPage({
@@ -24,7 +24,7 @@ class PaymentPage extends StatefulWidget {
     this.formData,
     this.vehicleGrantFile,
     this.passportFiles,
-    this.totalPrice,
+    required this.totalPrice,
     this.orderData,
   });
 
@@ -70,8 +70,6 @@ class _PaymentPageState extends State<PaymentPage> {
   // ── order id helpers ──
   int _nextCounter(int current) => current >= 999 ? 1 : current + 1;
   String _formatOrderId(int n) => 'TDS-${n.toString().padLeft(3, '0')}';
-
-  double get totalAmount => widget.totalPrice ?? 120.00;
 
   Future<void> downloadQrCode() async {
     final byteData = await rootBundle.load('assets/qr.png');
@@ -215,9 +213,9 @@ class _PaymentPageState extends State<PaymentPage> {
           "method": formData['deliveryMethod'] ?? "Via PDF",
         },
         "pricing": {
-          "totalPrice": totalAmount,
+          "totalPrice": widget.totalPrice,
         },
-        "totalPrice": totalAmount,
+        "totalPrice": widget.totalPrice,
         "status": "Pending",
         "createdAt": Timestamp.now(),
       });
@@ -226,7 +224,7 @@ class _PaymentPageState extends State<PaymentPage> {
         context,
         MaterialPageRoute(
           builder: (_) => ReceiptPage(
-            totalAmount: totalAmount,
+            totalAmount: widget.totalPrice,
             orderId: orderId,
             selectedItems: ["Insurance"],
             receiptImage: _receiptFile ?? receiptUrl,
@@ -265,7 +263,7 @@ class _PaymentPageState extends State<PaymentPage> {
                   const Text("TOTAL PAYABLE",
                       style: TextStyle(color: Colors.grey)),
                   const SizedBox(height: 6),
-                  Text("RM ${totalAmount.toStringAsFixed(2)}",
+                  Text("RM ${widget.totalPrice.toStringAsFixed(2)}",
                       style: const TextStyle(
                           fontSize: 28, fontWeight: FontWeight.bold)),
 

@@ -1,6 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:thaidrivesecure/addOn/map_launcher.dart';
+import 'package:thaidrivesecure/addOnServices/Adapter.dart';
+import 'package:thaidrivesecure/addOnServices/authorizeLetter.dart';
+import 'package:thaidrivesecure/addOnServices/sim.dart';
+import 'package:thaidrivesecure/addOnServices/tdac.dart';
+import 'package:thaidrivesecure/addOnServices/tm23.dart';
+import 'package:thaidrivesecure/addOnServices/towing.dart';
 
 // Pages
 import 'package:thaidrivesecure/screens/needs.dart';
@@ -24,6 +30,7 @@ class _HomePageState extends State<HomePage> {
   Timer? _timer;
 
   int _selectedIndex = 0;
+  String? selectedAddon;
 
   final List<String> promoImages = [
     "assets/promo1.jpg",
@@ -255,89 +262,125 @@ class _HomePageState extends State<HomePage> {
 
   // ================= ADD ON SERVICES =================
   Widget addOnServicesSlider() {
+    final Color lightBlue = const Color(0xFFCBD8F8);
     final services = [
       {
         "title": "Adapter",
         "image": "assets/adapter.png",
+        "price": "RM9",
+        "page": const Adapter(),
       },
       {
         "title": "Authorize Letter",
         "image": "assets/authorizeLetter.png",
+        "price": "RM5",
+        "page": const AuthorizeLetter(),
       },
       {
-        "title": "Personal Ins",
-        "image": "assets/Personal_Insurance.png",
-      },
-      {
-        "title": "TM2/3",
-        "image": "assets/TM23.png",
+        "title": "SIM",
+        "image": "assets/simCard.png",
+        "price": "RM29",
+        "page": const Sim(),
       },
       {
         "title": "TDAC",
         "image": "assets/TDAC.png",
+        "price": "RM2",
+        "page": const Tdac(),
+      },
+      {
+        "title": "TM2/3",
+        "image": "assets/TM23.png",
+        "price": "RM8",
+        "page": const Tm23(),
       },
       {
         "title": "Towing",
         "image": "assets/towing.png",
-      },
-      {
-        "title": "sim",
-        "image": "assets/sim.jpg",
+        "price": "RM19",
+        "page": const Towing(),
       },
     ];
 
-    return SizedBox(
-      height: 125,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: services.length,
-        itemBuilder: (context, index) {
-          final item = services[index];
-
-          return GestureDetector(
-            onTap: () {
-              // TODO: later can navigate to add-on detail page
-            },
-            child: Container(
-              width: 150,
-              margin: const EdgeInsets.only(right: 14),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Image.asset(
-                      item["image"]!,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    item["title"]!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: services.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 0.84,
       ),
+      itemBuilder: (context, index) {
+        final item = services[index];
+        final String itemName = item["title"]! as String;
+        final bool selected = selectedAddon == itemName;
+        final Widget targetPage = item["page"]! as Widget;
+
+        return GestureDetector(
+          onTap: () {
+            if (selectedAddon == itemName) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => targetPage,
+                ),
+              );
+              return;
+            }
+            setState(() {
+              selectedAddon = itemName;
+            });
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            transform: selected
+                ? Matrix4.translationValues(0, -6, 0)
+                : Matrix4.identity(),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            decoration: BoxDecoration(
+              color: selected ? Colors.green : lightBlue,
+              borderRadius: BorderRadius.circular(19),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: 38,
+                  child: Image.asset(
+                    item["image"]! as String,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  itemName,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 17,
+                    height: 1.05,
+                    fontWeight: FontWeight.w600,
+                    color: selected ? Colors.white : Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  "from ${item["price"]}",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: selected ? Colors.white70 : Colors.blue.shade900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
