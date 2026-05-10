@@ -263,9 +263,18 @@ class _HistoryPageState extends State<HistoryPage> {
     final String orderId = item["orderId"] ?? "TDS-000";
     final double totalPrice =
         double.tryParse((item["totalAmount"] ?? item["totalPrice"] ?? 0).toString()) ?? 0.0;
-    final int duration = (item["duration"] ?? item["travel"]?["duration"] ?? item["travel"]?["days"] ?? 0) is int
-        ? (item["duration"] ?? item["travel"]?["duration"] ?? item["travel"]?["days"] ?? 0) as int
-        : int.tryParse((item["duration"] ?? item["travel"]?["duration"] ?? item["travel"]?["days"] ?? 0).toString()) ?? 0;
+    final String durationLabel = (item["durationLabel"] ??
+            item["travel"]?["duration"] ??
+            "")
+        .toString();
+    final int legacyDurationDays = (item["duration"] ??
+            item["travel"]?["days"] ??
+            0) is int
+        ? (item["duration"] ?? item["travel"]?["days"] ?? 0) as int
+        : int.tryParse(
+                (item["duration"] ?? item["travel"]?["days"] ?? 0).toString(),
+              ) ??
+            0;
     final String deliveryMethod = (item["deliveryMethod"] ??
             item["delivery"]?["method"] ??
             "-")
@@ -373,7 +382,9 @@ class _HistoryPageState extends State<HistoryPage> {
               const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
               const SizedBox(width: 8),
               Text(
-                "$duration Days",
+                durationLabel.isNotEmpty
+                    ? durationLabel
+                    : "$legacyDurationDays Days",
                 style: const TextStyle(color: Colors.black54),
               ),
               const SizedBox(width: 32),

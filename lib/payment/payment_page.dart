@@ -10,6 +10,7 @@ import 'package:gallery_saver_plus/gallery_saver.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'cashPayment_page.dart';
 import 'receipt_page.dart';
 
 class PaymentPage extends StatefulWidget {
@@ -65,6 +66,61 @@ class _PaymentPageState extends State<PaymentPage> {
         "TDAC",
       ],
     };
+  }
+
+  /// Unified snapshot for cash payment (order review + optional Firestore fields).
+  Map<String, dynamic> _buildCashOrderPayload() {
+    final form = _resolvedFormData;
+    final o = widget.orderData;
+    final m = <String, dynamic>{
+      if (o != null) ...Map<String, dynamic>.from(o),
+    };
+
+    void putIfMissing(String key, dynamic value) {
+      if (value == null) return;
+      if (!m.containsKey(key) ||
+          m[key] == null ||
+          (m[key] is String && (m[key] as String).isEmpty)) {
+        m[key] = value;
+      }
+    }
+
+    putIfMissing('fullName', form['name']);
+    putIfMissing('name', form['name']);
+    putIfMissing('phone', form['phone']);
+    putIfMissing('destination', form['where']);
+    putIfMissing('where', form['where']);
+    putIfMissing('vehicleType', form['vehicleType']);
+    putIfMissing('packageType', form['packageType']);
+    putIfMissing('durationLabel', form['duration']);
+    putIfMissing('duration', form['duration']);
+    putIfMissing('passengerCount', form['passengerCount'] ?? form['passengers']);
+    putIfMissing('passengers', form['passengers']);
+    putIfMissing('deliveryMethod', form['deliveryMethod']);
+    putIfMissing('startDate', form['departDate']);
+    putIfMissing('endDate', form['returnDate']);
+    putIfMissing('departDate', form['departDate']);
+    putIfMissing('returnDate', form['returnDate']);
+    putIfMissing('insurancePrice', form['insurancePrice']);
+    putIfMissing('tmPrice', form['tmPrice']);
+    putIfMissing('tdacPrice', form['tdacPrice']);
+
+    m['totalPrice'] = widget.totalPrice;
+    return m;
+  }
+
+  void _openCashPayment() {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => CashPaymentPage(
+          orderData: _buildCashOrderPayload(),
+          totalPrice: widget.totalPrice,
+          vehicleGrantFile: widget.vehicleGrantFile,
+          passportFiles: widget.passportFiles,
+        ),
+      ),
+    );
   }
 
   // ── order id helpers ──
@@ -214,6 +270,9 @@ class _PaymentPageState extends State<PaymentPage> {
         },
         "pricing": {
           "totalPrice": widget.totalPrice,
+          "insurancePrice": formData['insurancePrice'] ?? 0.0,
+          "tmPrice": formData['tmPrice'] ?? 8.0,
+          "tdacPrice": formData['tdacPrice'] ?? 0.0,
         },
         "totalPrice": widget.totalPrice,
         "status": "Pending",
@@ -467,21 +526,31 @@ Widget _uploadButton() {
 
   // 🔵 CASH CARD
   Widget _cashCard() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.attach_money, color: Colors.green),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text("Pay with Cash\nPay in person at our local branch"),
+        onTap: _openCashPayment,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              const Icon(Icons.attach_money, color: Colors.green),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  "Pay with Cash\nPay in person at our local branch",
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: Colors.grey.shade600,
+              ),
+            ],
           ),
-          Icon(Icons.arrow_forward_ios, size: 14),
-        ],
+        ),
       ),
     );
   }

@@ -23,7 +23,7 @@ class VoluPlusInsSubmit extends StatefulWidget {
 }
 
 class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
-  String selectedDelivery = "Take Away";
+  String selectedDelivery = "Pickup";
   bool isSubmitting = false;
 
   String formatPrice(double value) {
@@ -43,8 +43,8 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
         DateTime.now().add(const Duration(days: 1));
 
     int get passengers => widget.formData['passengers'] ?? 1;
-    String get durationLabel => widget.formData['duration'] ?? "9 Days";
-    String get vehicleType => widget.formData['vehicleType'] ?? "Sedan";
+  String get durationLabel => widget.formData['duration'] ?? "9 Days";
+  String get vehicleType => widget.formData['vehicleType'] ?? "Sedan";
 /*
   // ================= SAFE DATE =================
   DateTime get departDate {
@@ -63,7 +63,6 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
   String get durationLabel => widget.formData['duration'] ?? "9 Days";
   String get vehicleType => widget.formData['vehicleType'] ?? 'Sedan';
 */
-  int get totalDays => returnDate.difference(departDate).inDays + 1;
 
   // ================= PRICE TABLE =================
   int get insurancePrice {
@@ -194,7 +193,6 @@ class _VoluPlusInsSubmitState extends State<VoluPlusInsSubmit> {
         'orderId': orderId,
         'userId': user.uid,
         ...widget.formData,
-        'durationDays': totalDays,
         'durationLabel': durationLabel,
         'vehicleType': vehicleType,
         'insurancePrice': insurancePrice,

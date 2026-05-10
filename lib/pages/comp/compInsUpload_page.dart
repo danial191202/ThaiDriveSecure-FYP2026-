@@ -118,66 +118,66 @@ class _CompInsUploadState extends State<CompInsUpload> {
       case "Pickup/SUV":
         switch (widget.duration) {
           case "9 Days":
-            insurancePrice = 50;
+            insurancePrice = 45;
             break;
           case "19 Days":
-            insurancePrice = 65;
+            insurancePrice = 60;
             break;
           case "1 Month":
-            insurancePrice = 90;
+            insurancePrice = 80;
             break;
           case "3 Months":
-            insurancePrice = 150;
+            insurancePrice = 140;
             break;
           case "6 Months":
-            insurancePrice = 240;
+            insurancePrice = 230;
             break;
           case "1 Year":
-            insurancePrice = 420;
+            insurancePrice = 400;
             break;
         }
         break;
       case "MPV":
         switch (widget.duration) {
           case "9 Days":
-            insurancePrice = 55;
+            insurancePrice = 50;
             break;
           case "19 Days":
-            insurancePrice = 75;
+            insurancePrice = 70;
             break;
           case "1 Month":
-            insurancePrice = 100;
+            insurancePrice = 90;
             break;
           case "3 Months":
-            insurancePrice = 170;
+            insurancePrice = 160;
             break;
           case "6 Months":
-            insurancePrice = 280;
+            insurancePrice = 260;
             break;
           case "1 Year":
-            insurancePrice = 480;
+            insurancePrice = 450;
             break;
         }
         break;
       case "Motorcycle":
         switch (widget.duration) {
           case "9 Days":
-            insurancePrice = 25;
+            insurancePrice = 20;
             break;
           case "19 Days":
-            insurancePrice = 35;
+            insurancePrice = 30;
             break;
           case "1 Month":
-            insurancePrice = 50;
+            insurancePrice = 40;
             break;
           case "3 Months":
-            insurancePrice = 80;
+            insurancePrice = 70;
             break;
           case "6 Months":
-            insurancePrice = 130;
+            insurancePrice = 120;
             break;
           case "1 Year":
-            insurancePrice = 220;
+            insurancePrice = 200;
             break;
         }
         break;
@@ -185,22 +185,22 @@ class _CompInsUploadState extends State<CompInsUpload> {
       default:
         switch (widget.duration) {
           case "9 Days":
-            insurancePrice = 40;
+            insurancePrice = 35;
             break;
           case "19 Days":
-            insurancePrice = 55;
+            insurancePrice = 50;
             break;
           case "1 Month":
-            insurancePrice = 75;
+            insurancePrice = 65;
             break;
           case "3 Months":
-            insurancePrice = 130;
+            insurancePrice = 120;
             break;
           case "6 Months":
-            insurancePrice = 210;
+            insurancePrice = 200;
             break;
           case "1 Year":
-            insurancePrice = 370;
+            insurancePrice = 350;
             break;
         }
         break;

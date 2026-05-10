@@ -59,11 +59,6 @@ class _VoluPlusInsState extends State<VoluPlusIns> {
     return "${date.day}/${date.month}/${date.year}";
   }
 
-  int get totalDays {
-    if (_departDate == null || _returnDate == null) return 0;
-    return _returnDate!.difference(_departDate!).inDays + 1;
-  }
-
   String get vehicleImage {
     switch (widget.vehicleType) {
       case "Pickup/SUV":
@@ -130,7 +125,7 @@ class _VoluPlusInsState extends State<VoluPlusIns> {
           phone: _phoneController.text.trim(),
           where: "$_from → $_to",
           whenDate:
-              "${formatDate(_departDate)} – ${formatDate(_returnDate)} ($totalDays days)",
+              "${formatDate(_departDate)} – ${formatDate(_returnDate)} ($_duration)",
           passengerCount: _passenger,
           duration: _duration,
           vehicleType: widget.vehicleType,

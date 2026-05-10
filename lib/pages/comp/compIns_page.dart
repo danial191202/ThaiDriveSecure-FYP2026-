@@ -59,11 +59,6 @@ class _CompInsState extends State<CompIns> {
     return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
   }
 
-  int get totalDays {
-    if (_departDate == null || _returnDate == null) return 0;
-    return _returnDate!.difference(_departDate!).inDays + 1;
-  }
-
   String get vehicleImage {
     switch (widget.vehicleType) {
       case "Pickup/SUV":
@@ -123,7 +118,7 @@ class _CompInsState extends State<CompIns> {
           phone: _phoneController.text.trim(),
           where: "$_from → $_to",
           whenDate:
-              "${formatDate(_departDate)} – ${formatDate(_returnDate)} ($totalDays days)",
+              "${formatDate(_departDate)} – ${formatDate(_returnDate)} ($_duration)",
           passengerCount: _passenger,
           duration: _duration,
           vehicleType: widget.vehicleType,
@@ -465,7 +460,7 @@ class _CompInsState extends State<CompIns> {
               ),
             ),
             dropdown("DELIVERY METHOD", _deliveryMethod,
-                ["Via PDF", "Deliver", "Take Away"],
+                ["Via PDF", "Deliver", "Pickup"],
                 (v) => setState(() => _deliveryMethod = v!)),
           ],
         ),

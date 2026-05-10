@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:thaidrivesecure/addOn/map_launcher.dart';
 import 'package:thaidrivesecure/addOnServices/Adapter.dart';
 import 'package:thaidrivesecure/addOnServices/authorizeLetter.dart';
@@ -61,6 +62,18 @@ class _HomePageState extends State<HomePage> {
     _timer?.cancel();
     _pageController.dispose();
     super.dispose();
+  }
+
+  static final Uri _learnMoreWebsite = Uri.parse(
+    'https://intis2ar-ux.github.io/thaidrivesecure-Website/',
+  );
+
+  Future<void> _openLearnMoreWebsite() async {
+    try {
+      await launchUrl(_learnMoreWebsite, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('Could not open website: $e');
+    }
   }
 
   @override
@@ -152,11 +165,14 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            infoCard(
-              title: "Learn more about us",
-              description:
-                  "Learn more about our website, services and how we can help you.",
-              imagePath: "assets/web.png",
+            GestureDetector(
+              onTap: _openLearnMoreWebsite,
+              child: infoCard(
+                title: "Learn more about us",
+                description:
+                    "Learn more about our website, services and how we can help you.",
+                imagePath: "assets/web.png",
+              ),
             ),
           ],
         ),
@@ -170,7 +186,7 @@ class _HomePageState extends State<HomePage> {
       {
         "title": "Sedan",
         "vehicleType": "Sedan",
-        "image": "assets/1sedancar.png",
+        "image": "assets/1sedan.png",
       },
       {
         "title": "Pickup/SUV",
@@ -217,7 +233,7 @@ class _HomePageState extends State<HomePage> {
       {
         "title": "Motorcycle",
         "vehicleType": "Motorcycle",
-        "image": "assets/2motor.png",
+        "image": "assets/2motorcycle.png",
       },
     ];
 
@@ -249,7 +265,7 @@ class _HomePageState extends State<HomePage> {
       {
         "title": "Motorcycle",
         "vehicleType": "Motorcycle",
-        "image": "assets/3motor.png",
+        "image": "assets/3motorcycle.png",
       },
     ];
 

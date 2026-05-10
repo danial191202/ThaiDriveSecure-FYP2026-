@@ -96,23 +96,48 @@ class _ReceiptHistoryPageState extends State<ReceiptHistoryPage> {
     final delivery =
         order['deliveryMethod'] ?? order['delivery']?['method'] ?? "Via PDF";
 
-    final packageType =
-        (order['packageType'] ?? "Compulsory").toString().replaceFirst(
-              RegExp(r'^Insurance\s*'),
-              '',
-            );
+    final rawPackageType =
+        (order['packageType'] ?? '').toString().trim();
+    final packageTitle = rawPackageType.isEmpty
+        ? 'Insurance Package'
+        : (rawPackageType.toLowerCase().startsWith('insurance')
+            ? rawPackageType
+            : 'Insurance $rawPackageType');
     final vehicleType =
         (order['vehicleType'] ?? order['trip']?['vehicleType'] ?? "").toString();
-    final duration = order['duration'] ?? order['travel']?['days'] ?? 0;
-    final passengers =
+    final durationLabel = (order['durationLabel'] ??
+            order['travel']?['duration'] ??
+            "")
+        .toString();
+    final legacyDurationDays = order['duration'] ?? order['travel']?['days'] ?? 0;
+    final paxRaw =
         order['passengerCount'] ?? order['trip']?['passengers'] ?? 1;
+    final passengerCount = paxRaw is int
+        ? paxRaw
+        : int.tryParse(paxRaw.toString()) ?? 1;
 
-    final insurancePrice = _toDouble(order['insurancePrice']);
-    final tmPrice =
-        _toDouble(order['tmPrice'] ?? order['pricing']?['tmPrice'] ?? 8);
-    final tdacPrice = _toDouble(order['tdacPrice']);
+    var insurancePrice = _toDouble(
+        order['insurancePrice'] ?? order['pricing']?['insurancePrice'],
+    );
+    var tmPrice = _toDouble(
+        order['tmPrice'] ??
+            order['tm23Price'] ??
+            order['pricing']?['tmPrice'] ??
+            8,
+    );
+    var tdacPrice = _toDouble(
+        order['tdacPrice'] ?? order['pricing']?['tdacPrice'],
+    );
     final totalPrice =
         _toDouble(order['totalPrice'] ?? order['pricing']?['totalPrice']);
+
+    if (tdacPrice <= 0 && passengerCount > 0) {
+      tdacPrice = passengerCount * 2.0;
+    }
+    if (insurancePrice <= 0 && totalPrice > 0) {
+      final inferred = totalPrice - tmPrice - tdacPrice;
+      if (inferred >= 0) insurancePrice = inferred;
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
@@ -244,8 +269,9 @@ class _ReceiptHistoryPageState extends State<ReceiptHistoryPage> {
                         children: [
                           _itemRow(
                             number: "1.",
-                            label:
-                                "Insurance $packageType ($duration Days)",
+                            label: durationLabel.isNotEmpty
+                                ? "$packageTitle ($durationLabel)"
+                                : "$packageTitle ($legacyDurationDays Days)",
                             subtitle: vehicleType.isNotEmpty
                                 ? vehicleType
                                 : null,
@@ -262,7 +288,7 @@ class _ReceiptHistoryPageState extends State<ReceiptHistoryPage> {
                           _itemRow(
                             number: "3.",
                             label: "TDAC",
-                            subtitle: "Person x$passengers",
+                            subtitle: "Person x$passengerCount",
                             price: tdacPrice,
                           ),
                         ],

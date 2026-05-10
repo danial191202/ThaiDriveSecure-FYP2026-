@@ -54,7 +54,6 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
   int get passengers => widget.passengerCount;
   String get durationLabel => widget.duration;
   String get vehicleType => widget.vehicleType;
-  int get durationDays => returnDate.difference(departDate).inDays + 1;
 
   // ================= PRICE =================
   int get insurancePrice {
@@ -150,7 +149,6 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
             "destination": widget.destination,
             "vehicleType": widget.vehicleType,
             "packageType": widget.packageType,
-            "duration": durationDays,
             "durationLabel": widget.duration,
             "startDate": widget.startDate,
             "endDate": widget.endDate,
@@ -284,7 +282,7 @@ class _CompInsSubmitState extends State<CompInsSubmit> {
           _row("Vehicle Type:", vehicleType),
           _row(
             "When:",
-            "${_formatDate(departDate)} - ${_formatDate(returnDate)} ($durationDays Days)",
+            "${_formatDate(departDate)} - ${_formatDate(returnDate)} ($durationLabel)",
           ),
           _row("Passenger:", passengers.toString()),
 

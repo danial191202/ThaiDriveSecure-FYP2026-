@@ -45,7 +45,7 @@ class _VoluInsState extends State<VoluIns> {
   bool isPressed = false;
 
   String _duration = "9 Days";
-  String _deliveryMethod = "Take Away";
+  String _deliveryMethod = "Pickup";
 
   List<String> get durationList {
     if (widget.vehicleType == "Motorcycle") {
@@ -58,11 +58,6 @@ class _VoluInsState extends State<VoluIns> {
   String formatDate(DateTime? date) {
     if (date == null) return "";
     return "${date.day}/${date.month}/${date.year}";
-  }
-
-  int get totalDays {
-    if (_departDate == null || _returnDate == null) return 0;
-    return _returnDate!.difference(_departDate!).inDays + 1;
   }
 
   String get vehicleImage {
@@ -131,7 +126,7 @@ class _VoluInsState extends State<VoluIns> {
           phone: _phoneController.text.trim(),
           where: "$_from → $_to",
           whenDate:
-              "${formatDate(_departDate)} – ${formatDate(_returnDate)} ($totalDays days)",
+              "${formatDate(_departDate)} – ${formatDate(_returnDate)} ($_duration)",
           passengerCount: _passenger,
           duration: _duration,
           deliveryMethod: _deliveryMethod,
@@ -461,7 +456,7 @@ class _VoluInsState extends State<VoluIns> {
               ),
             ),
             dropdown("DELIVERY METHOD", _deliveryMethod,
-                ["Via PDF", "Deliver", "Take Away"],
+                ["Via PDF", "Deliver", "Pickup"],
                 (v) => setState(() => _deliveryMethod = v!)),
           ],
         ),

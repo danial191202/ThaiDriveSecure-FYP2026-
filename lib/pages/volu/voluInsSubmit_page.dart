@@ -33,7 +33,7 @@ class _VoluInsSubmitState extends State<VoluInsSubmit> {
   @override
   void initState() {
     super.initState();
-    selectedDelivery = widget.formData['deliveryMethod'] ?? "Take Away";
+    selectedDelivery = widget.formData['deliveryMethod'] ?? "Pickup";
   }
 
       // ================= DATA =================
@@ -49,8 +49,8 @@ class _VoluInsSubmitState extends State<VoluInsSubmit> {
         DateTime.now().add(const Duration(days: 1));
 
     int get passengers => widget.formData['passengers'] ?? 1;
-    String get durationLabel => widget.formData['duration'] ?? "9 Days";
-    String get vehicleType => widget.formData['vehicleType'] ?? "Sedan";
+  String get durationLabel => widget.formData['duration'] ?? "9 Days";
+  String get vehicleType => widget.formData['vehicleType'] ?? "Sedan";
 /*
   // ================= SAFE DATE =================
   DateTime get departDate {
@@ -69,7 +69,6 @@ class _VoluInsSubmitState extends State<VoluInsSubmit> {
   String get durationLabel => widget.formData['duration'] ?? "9 Days";
   String get vehicleType => widget.formData['vehicleType'] ?? 'Sedan';
 */
-  int get totalDays => returnDate.difference(departDate).inDays + 1;
 
   // ================= PRICE TABLE =================
   int get insurancePrice {
@@ -200,7 +199,6 @@ class _VoluInsSubmitState extends State<VoluInsSubmit> {
         'orderId': orderId,
         'userId': user.uid,
         ...widget.formData,
-        'durationDays': totalDays,
         'durationLabel': durationLabel,
         'vehicleType': vehicleType,
         'insurancePrice': insurancePrice,
