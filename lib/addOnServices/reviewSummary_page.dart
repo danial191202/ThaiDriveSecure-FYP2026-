@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../payment/payment_page.dart';
+import 'package:thaidrivesecure/addPayment/addPayment_page.dart';
 
 class ReviewSummaryPage extends StatelessWidget {
   final String fullName;
@@ -141,7 +141,15 @@ class ReviewSummaryPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => PaymentPage(totalPrice: sharedTotalPrice),
+                        builder: (_) => AddPaymentPage(
+                          fullName: fullName,
+                          phone: phone,
+                          pickupDate: pickupDate,
+                          deliveryMethod: deliveryMethod,
+                          serviceName: serviceName,
+                          quantity: quantity,
+                          totalPrice: sharedTotalPrice,
+                        ),
                       ),
                     );
                   },

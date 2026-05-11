@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:thaidrivesecure/addPayment/addReceipt_page.dart';
 import 'package:thaidrivesecure/history/receiptHistory_page.dart';
 
 class HistoryPage extends StatefulWidget {
@@ -13,6 +14,9 @@ class HistoryPage extends StatefulWidget {
 class _HistoryPageState extends State<HistoryPage> {
   /// ✅ Default tab = Pending
   String selectedTab = "Pending";
+
+  /// Insurance Packages (default) | Add On Services
+  String selectedCategory = "Insurance Packages";
 
   DateTime? _toDateTime(dynamic value) {
     if (value is Timestamp) return value.toDate();
@@ -27,6 +31,20 @@ class _HistoryPageState extends State<HistoryPage> {
     final m = date.month.toString().padLeft(2, '0');
     final y = date.year.toString();
     return "$d/$m/$y";
+  }
+
+  /// Add-on card: `selectedDate` → `pickupDate` → `createdAt` (no hardcoding).
+  String _addonCardDate(Map<String, dynamic> item) {
+    final s = (item['selectedDate'] ?? '').toString().trim();
+    if (s.isNotEmpty) return s;
+    final p = (item['pickupDate'] ?? '').toString().trim();
+    if (p.isNotEmpty) return p;
+    final createdAt = item['createdAt'];
+    if (createdAt is Timestamp) {
+      final d = createdAt.toDate();
+      return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+    }
+    return '-';
   }
 
   @override
@@ -87,7 +105,11 @@ class _HistoryPageState extends State<HistoryPage> {
                   ),
                 ),
 
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
+
+                _categoryDropdown(),
+
+                const SizedBox(height: 14),
 
                 /// FIRESTORE CARD LIST
                 Expanded(
@@ -142,10 +164,15 @@ class _HistoryPageState extends State<HistoryPage> {
                         return status == selectedTab;
                       }).toList();
 
-                      if (filteredDocs.isEmpty) {
+                      final categoryFiltered = filteredDocs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        return _matchesCategoryFilter(data);
+                      }).toList();
+
+                      if (categoryFiltered.isEmpty) {
                         return Center(
                           child: Text(
-                            "No $selectedTab orders found.",
+                            "No $selectedTab orders in $selectedCategory.",
                             style: const TextStyle(fontSize: 16),
                           ),
                         );
@@ -153,9 +180,9 @@ class _HistoryPageState extends State<HistoryPage> {
 
                       return ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: filteredDocs.length,
+                        itemCount: categoryFiltered.length,
                         itemBuilder: (context, index) {
-                          final item = filteredDocs[index].data()
+                          final item = categoryFiltered[index].data()
                               as Map<String, dynamic>;
                           return buildHistoryCard(item);
                         },
@@ -165,6 +192,84 @@ class _HistoryPageState extends State<HistoryPage> {
                 ),
               ],
             ),
+    );
+  }
+
+  bool _isAddonOrder(Map<String, dynamic> data) {
+    final t = (data['type'] ?? '').toString().toLowerCase().trim();
+    return t == 'addon';
+  }
+
+  /// Insurance: `type == insurance`, legacy orders (no `type`), or any non-addon.
+  bool _matchesCategoryFilter(Map<String, dynamic> data) {
+    if (selectedCategory == "Add On Services") {
+      return _isAddonOrder(data);
+    }
+    return !_isAddonOrder(data);
+  }
+
+  String _categoryDropdownButtonLabel() {
+    if (selectedCategory == "Add On Services") {
+      return "ADD ON SERVICES";
+    }
+    return "INSURANCE PACKAGES";
+  }
+
+  Widget _categoryDropdown() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: PopupMenuButton<String>(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        onSelected: (value) {
+          setState(() => selectedCategory = value);
+        },
+        itemBuilder: (context) => const [
+          PopupMenuItem<String>(
+            value: "Insurance Packages",
+            child: Text("Insurance Packages"),
+          ),
+          PopupMenuItem<String>(
+            value: "Add On Services",
+            child: Text("Add On Services"),
+          ),
+        ],
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF36A9A6),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.description_outlined,
+                  color: Colors.white, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  _categoryDropdownButtonLabel(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ),
+              const Icon(Icons.keyboard_arrow_down_rounded,
+                  color: Colors.white, size: 22),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -222,6 +327,14 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   /// ================= PACKAGE NAME BUILDER =================
+  String _buildCardTitle(Map<String, dynamic> item) {
+    if (_isAddonOrder(item)) {
+      final n = (item["serviceName"] ?? "Add-on").toString().trim();
+      return n.isEmpty ? "Add-on" : n;
+    }
+    return _buildPackageName(item);
+  }
+
   String _buildPackageName(Map<String, dynamic> item) {
     final packageType = (item["packageType"] ?? "").toString().trim();
     final vehicleType =
@@ -259,7 +372,8 @@ class _HistoryPageState extends State<HistoryPage> {
 
     String buttonText = status == "Pending" ? "View Order" : "View Receipt";
 
-    final String packageName = _buildPackageName(item);
+    final String packageName = _buildCardTitle(item);
+    final bool isAddon = _isAddonOrder(item);
     final String orderId = item["orderId"] ?? "TDS-000";
     final double totalPrice =
         double.tryParse((item["totalAmount"] ?? item["totalPrice"] ?? 0).toString()) ?? 0.0;
@@ -285,7 +399,6 @@ class _HistoryPageState extends State<HistoryPage> {
         _toDateTime(item["endDate"] ?? item["travel"]?["returnDate"]);
     final String dateRangeText =
         "${_formatDate(startDate)} - ${_formatDate(endDate)}";
-
     String dateText = "-";
     final createdAt = item["createdAt"];
     if (createdAt is Timestamp) {
@@ -293,6 +406,15 @@ class _HistoryPageState extends State<HistoryPage> {
       dateText =
           "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
     }
+
+    final String titleSideDate = isAddon ? _addonCardDate(item) : dateText;
+
+    final String firstIconText = isAddon
+        ? _addonCardDate(item)
+        : (durationLabel.isNotEmpty
+            ? durationLabel
+            : "$legacyDurationDays Days");
+    final String secondIconText = dateRangeText;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
@@ -365,7 +487,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 ),
               ),
               Text(
-                dateText,
+                titleSideDate,
                 style: const TextStyle(
                   fontSize: 13,
                   color: Colors.grey,
@@ -376,19 +498,21 @@ class _HistoryPageState extends State<HistoryPage> {
 
           const SizedBox(height: 16),
 
-          /// ICON ROW 1
+          /// ICON ROW 1 — add-on: date + delivery only (no duplicate row).
           Row(
             children: [
               const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
               const SizedBox(width: 8),
               Text(
-                durationLabel.isNotEmpty
-                    ? durationLabel
-                    : "$legacyDurationDays Days",
+                firstIconText,
                 style: const TextStyle(color: Colors.black54),
               ),
               const SizedBox(width: 32),
-              const Icon(Icons.receipt_long, size: 18, color: Colors.grey),
+              Icon(
+                isAddon ? Icons.local_shipping : Icons.receipt_long,
+                size: 18,
+                color: Colors.grey,
+              ),
               const SizedBox(width: 8),
               Text(
                 deliveryMethod,
@@ -397,19 +521,19 @@ class _HistoryPageState extends State<HistoryPage> {
             ],
           ),
 
-          const SizedBox(height: 14),
-
-          /// ICON ROW 2
-          Row(
-            children: [
-              const Icon(Icons.description, size: 18, color: Colors.grey),
-              const SizedBox(width: 8),
-              Text(
-                dateRangeText,
-                style: const TextStyle(color: Colors.black54),
-              ),
-            ],
-          ),
+          if (!isAddon) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                const Icon(Icons.description, size: 18, color: Colors.grey),
+                const SizedBox(width: 8),
+                Text(
+                  secondIconText,
+                  style: const TextStyle(color: Colors.black54),
+                ),
+              ],
+            ),
+          ],
 
           const SizedBox(height: 18),
           const Divider(height: 1),
@@ -441,12 +565,21 @@ class _HistoryPageState extends State<HistoryPage> {
                   elevation: 0,
                 ),
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ReceiptHistoryPage(order: item),
-                    ),
-                  );
+                  if (isAddon) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) => AddReceiptPage(orderData: item),
+                      ),
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) => ReceiptHistoryPage(order: item),
+                      ),
+                    );
+                  }
                 },
                 child: Text(
                   buttonText,
