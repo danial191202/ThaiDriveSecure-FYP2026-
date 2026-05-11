@@ -15,10 +15,10 @@ class VoluInsUpload extends StatefulWidget {
   final String whenDate;
   final int passengerCount;
   final String duration;
-  final String deliveryMethod;
   final String vehicleType;
   final DateTime departDate;
   final DateTime returnDate;
+  final String deliveryMethod;
 
   const VoluInsUpload({
     super.key,
@@ -28,10 +28,10 @@ class VoluInsUpload extends StatefulWidget {
     required this.whenDate,
     required this.passengerCount,
     required this.duration,
-    required this.deliveryMethod,
     required this.vehicleType,
     required this.departDate,
     required this.returnDate,
+    required this.deliveryMethod,
   });
 
   @override
@@ -47,23 +47,23 @@ class _VoluInsUploadState extends State<VoluInsUpload> {
   @override
   void initState() {
     super.initState();
+    vehicleGrantImage = null;
     passportImages = List.generate(widget.passengerCount, (_) => null);
   }
 
-  // ================= SAVE IMAGE PERMANENTLY =================
   Future<File> _saveImagePermanently(XFile image) async {
     final directory = await getApplicationDocumentsDirectory();
     final fileName =
         "${DateTime.now().millisecondsSinceEpoch}_${path.basename(image.path)}";
-    final savedImage = await File(
-      image.path,
-    ).copy('${directory.path}/$fileName');
-    return savedImage;
+
+    return File(image.path).copy('${directory.path}/$fileName');
   }
 
-  // ================= PICK IMAGE =================
   Future<void> pickImage({required bool isVehicleGrant, int? index}) async {
-    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? picked = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
 
     if (picked != null) {
       final savedFile = await _saveImagePermanently(picked);
@@ -78,41 +78,139 @@ class _VoluInsUploadState extends State<VoluInsUpload> {
     }
   }
 
-  // ================= SUBMIT =================
-  void submitDocuments() {
-    if (vehicleGrantImage == null || passportImages.any((img) => img == null)) {
+  Future<void> submitDocuments() async {
+    if (vehicleGrantImage == null ||
+        passportImages.any((img) => img == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please upload all required documents")),
       );
       return;
     }
 
+    final int totalPrice = _calculateTotalPrice();
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => VoluInsSubmit(
-          formData: {
-            'name': widget.name,
-            'phone': widget.phone,
-            'where': widget.where,
-            'when': widget.whenDate,
-            'passengers': widget.passengerCount,
-            'vehicleType': widget.vehicleType,
-            'duration': widget.duration,
-            'deliveryMethod': widget.deliveryMethod,
-            'departDate': widget.departDate,
-            'returnDate': widget.returnDate,
-          },
-
-          // ✅ FIXED HERE
-          vehicleGrantFile: vehicleGrantImage!,
-          passportFiles: passportImages.cast<File>(),
+          fullName: widget.name,
+          phone: widget.phone,
+          destination: widget.where,
+          startDate: widget.departDate,
+          endDate: widget.returnDate,
+          passengerCount: widget.passengerCount,
+          vehicleType: widget.vehicleType,
+          packageType: "Insurance Voluntary",
+          duration: widget.duration,
+          totalPrice: totalPrice.toDouble(),
+          deliveryMethod: widget.deliveryMethod,
+          vehicleGrantFile: vehicleGrantImage,
+          passportFiles: passportImages.whereType<File>().toList(),
         ),
       ),
     );
   }
 
-  // ================= UI =================
+  int _calculateTotalPrice() {
+    int insurancePrice = 0;
+
+    switch (widget.vehicleType) {
+      case "Pickup/SUV":
+        switch (widget.duration) {
+          case "9 Days":
+            insurancePrice = 75;
+            break;
+          case "19 Days":
+            insurancePrice = 95;
+            break;
+          case "1 Month":
+            insurancePrice = 120;
+            break;
+          case "3 Months":
+            insurancePrice = 210;
+            break;
+          case "6 Months":
+            insurancePrice = 340;
+            break;
+          case "1 Year":
+            insurancePrice = 580;
+            break;
+        }
+        break;
+      case "MPV":
+        switch (widget.duration) {
+          case "9 Days":
+            insurancePrice = 85;
+            break;
+          case "19 Days":
+            insurancePrice = 110;
+            break;
+          case "1 Month":
+            insurancePrice = 140;
+            break;
+          case "3 Months":
+            insurancePrice = 240;
+            break;
+          case "6 Months":
+            insurancePrice = 380;
+            break;
+          case "1 Year":
+            insurancePrice = 650;
+            break;
+        }
+        break;
+      case "Motorcycle":
+        switch (widget.duration) {
+          case "9 Days":
+            insurancePrice = 35;
+            break;
+          case "19 Days":
+            insurancePrice = 50;
+            break;
+          case "1 Month":
+            insurancePrice = 65;
+            break;
+          case "3 Months":
+            insurancePrice = 110;
+            break;
+          case "6 Months":
+            insurancePrice = 180;
+            break;
+          case "1 Year":
+            insurancePrice = 300;
+            break;
+        }
+        break;
+      case "Sedan":
+      default:
+        switch (widget.duration) {
+          case "9 Days":
+            insurancePrice = 60;
+            break;
+          case "19 Days":
+            insurancePrice = 80;
+            break;
+          case "1 Month":
+            insurancePrice = 100;
+            break;
+          case "3 Months":
+            insurancePrice = 180;
+            break;
+          case "6 Months":
+            insurancePrice = 300;
+            break;
+          case "1 Year":
+            insurancePrice = 500;
+            break;
+        }
+        break;
+    }
+
+    final int tdacPrice = widget.passengerCount * 2;
+    const int tm23Price = 8;
+    return insurancePrice + tdacPrice + tm23Price;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -264,45 +362,43 @@ class _VoluInsUploadState extends State<VoluInsUpload> {
     final isUploaded = image != null;
     final color = isUploaded ? Colors.green : Colors.red;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.4)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.description),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.description),
+              const SizedBox(width: 8),
+              Text(title,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    isUploaded ? "UPLOADED" : "REQUIRED",
-                    style: TextStyle(color: color, fontSize: 12),
-                  ),
+                child: Text(
+                  isUploaded ? "UPLOADED" : "REQUIRED",
+                  style: TextStyle(color: color, fontSize: 12),
                 ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(subtitle, style: const TextStyle(color: Colors.grey)),
-            const SizedBox(height: 12),
-            Container(
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(subtitle, style: const TextStyle(color: Colors.grey)),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: onTap,
+            child: Container(
               height: 120,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
@@ -324,8 +420,8 @@ class _VoluInsUploadState extends State<VoluInsUpload> {
                       child: Image.file(image, fit: BoxFit.cover),
                     ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

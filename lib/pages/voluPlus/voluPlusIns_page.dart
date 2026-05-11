@@ -35,28 +35,24 @@ class _VoluPlusInsState extends State<VoluPlusIns> {
 
   String _from = "Bukit Kayu Hitam";
   String _to = "Hat Yai";
-
   int _passenger = 1;
-
   DateTime? _departDate;
   DateTime? _returnDate;
-
   bool isLoading = false;
   bool isPressed = false;
-
   String _duration = "9 Days";
+  String _deliveryMethod = "Via PDF";
 
   List<String> get durationList {
     if (widget.vehicleType == "Motorcycle") {
       return ["3 Months", "6 Months", "1 Year"];
     }
-
     return ["9 Days", "19 Days", "1 Month", "3 Months", "6 Months", "1 Year"];
   }
 
   String formatDate(DateTime? date) {
     if (date == null) return "";
-    return "${date.day}/${date.month}/${date.year}";
+    return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
   }
 
   String get vehicleImage {
@@ -67,7 +63,6 @@ class _VoluPlusInsState extends State<VoluPlusIns> {
         return "assets/mpv.png";
       case "Motorcycle":
         return "assets/motorcycle.png";
-      case "Sedan":
       default:
         return "assets/sedan1.png";
     }
@@ -76,13 +71,7 @@ class _VoluPlusInsState extends State<VoluPlusIns> {
   @override
   void initState() {
     super.initState();
-
-    // Make sure default duration is valid for selected vehicle
-    if (widget.vehicleType == "Motorcycle") {
-      _duration = "3 Months";
-    } else {
-      _duration = "9 Days";
-    }
+    _duration = widget.vehicleType == "Motorcycle" ? "3 Months" : "9 Days";
   }
 
   @override
@@ -109,7 +98,6 @@ class _VoluPlusInsState extends State<VoluPlusIns> {
     });
 
     await Future.delayed(const Duration(seconds: 1));
-
     if (!mounted) return;
 
     setState(() {
@@ -131,6 +119,7 @@ class _VoluPlusInsState extends State<VoluPlusIns> {
           vehicleType: widget.vehicleType,
           departDate: _departDate!,
           returnDate: _returnDate!,
+          deliveryMethod: _deliveryMethod,
         ),
       ),
     );
@@ -310,22 +299,34 @@ class _VoluPlusInsState extends State<VoluPlusIns> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  "TM2 / TM3 Form : RM8",
-                  style: TextStyle(
-                    color: Color(0xFF556070),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
+                const Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "TM2 / TM3 Form : RM8",
+                        style: TextStyle(
+                          color: Color(0xFF556070),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  "TDAC : RM2 per person",
-                  style: TextStyle(
-                    color: Color(0xFF556070),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
+                const Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "TDAC : RM2 per person",
+                        style: TextStyle(
+                          color: Color(0xFF556070),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -437,7 +438,7 @@ class _VoluPlusInsState extends State<VoluPlusIns> {
             dropdown("INSURANCE DURATION", _duration, durationList,
                 (v) => setState(() => _duration = v!)),
             dropdown("PASSENGER", _passenger.toString(),
-                List.generate(7, (i) => (i + 1).toString()),
+                List.generate(5, (i) => (i + 1).toString()),
                 (v) => setState(() => _passenger = int.parse(v!))),
             const Padding(
               padding: EdgeInsets.only(bottom: 10),
@@ -453,7 +454,10 @@ class _VoluPlusInsState extends State<VoluPlusIns> {
                 ),
               ),
             ),
-        ],
+            dropdown("DELIVERY METHOD", _deliveryMethod,
+                ["Via PDF", "Deliver", "Pickup"],
+                (v) => setState(() => _deliveryMethod = v!)),
+          ],
         ),
       ),
     );
