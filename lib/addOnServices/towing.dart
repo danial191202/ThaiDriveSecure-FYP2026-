@@ -13,6 +13,7 @@ class _TowingState extends State<Towing> {
   final _formKey = GlobalKey<FormState>();
   int quantity = 1;
   String? deliveryMethod = 'Delivery';
+  String pickupDate = '';
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _fromController = TextEditingController();
@@ -71,7 +72,7 @@ class _TowingState extends State<Towing> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
-              color: const Color(0xFFF1F3F5),
+              color: Colors.transparent,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -201,6 +202,9 @@ class _TowingState extends State<Towing> {
               ),
             ),
             const SizedBox(height: 8),
+            _label('PICKUP DATE'),
+            _datePickerField(),
+            const SizedBox(height: 8),
             _label('DELIVERY METHOD'),
             _deliveryDropdown(),
                   const SizedBox(height: 16),
@@ -227,6 +231,7 @@ class _TowingState extends State<Towing> {
                     builder: (_) => ReviewSummaryPage(
                       fullName: _fullNameController.text.trim(),
                       phone: _phoneController.text.trim(),
+                      pickupDate: pickupDate,
                       deliveryMethod: deliveryMethod ?? 'Delivery',
                       serviceName: 'Towing',
                       quantity: quantity,
@@ -442,6 +447,56 @@ class _TowingState extends State<Towing> {
         return null;
       },
       onChanged: (value) => setState(() => deliveryMethod = value),
+    );
+  }
+
+  Future<void> _selectPickupDate() async {
+    final DateTime now = DateTime.now();
+    final DateTime? selectedDate = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(now.year - 10),
+      lastDate: DateTime(now.year + 10),
+    );
+
+    if (selectedDate == null) return;
+    setState(() {
+      pickupDate =
+          '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}';
+    });
+  }
+
+  Widget _datePickerField() {
+    return GestureDetector(
+      onTap: _selectPickupDate,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFECEFF4),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFD1D7E0)),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.calendar_today_outlined,
+              color: Color(0xFF9BA2AE),
+              size: 16,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              pickupDate.isEmpty ? 'DD/MM/YYYY' : pickupDate,
+              style: TextStyle(
+                color: pickupDate.isEmpty
+                    ? const Color(0xFF9BA2AE)
+                    : Colors.black87,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

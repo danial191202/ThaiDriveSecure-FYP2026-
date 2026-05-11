@@ -4,6 +4,7 @@ import '../payment/payment_page.dart';
 class ReviewSummaryPage extends StatelessWidget {
   final String fullName;
   final String phone;
+  final String pickupDate;
   final String deliveryMethod;
   final String serviceName;
   final int quantity;
@@ -13,6 +14,7 @@ class ReviewSummaryPage extends StatelessWidget {
     super.key,
     required this.fullName,
     required this.phone,
+    required this.pickupDate,
     required this.deliveryMethod,
     required this.serviceName,
     required this.quantity,
@@ -63,6 +65,8 @@ class ReviewSummaryPage extends StatelessWidget {
                     _labelValue('Name', fullName),
                     const SizedBox(height: 10),
                     _labelValue('No.Telephone', phone),
+                    const SizedBox(height: 10),
+                    _labelValue('Pickup Date', pickupDate),
                     const SizedBox(height: 10),
                     _labelValue('Delivery Method', deliveryMethod),
                     const SizedBox(height: 12),
