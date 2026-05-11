@@ -114,11 +114,17 @@ class _HistoryPageState extends State<HistoryPage> {
                 /// FIRESTORE CARD LIST
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('orders') // ✅ CHANGED
-                        .where('userId', isEqualTo: currentUser.uid)
-                        .orderBy('createdAt', descending: true) // ✅ NEWEST FIRST
-                        .snapshots(),
+                    stream: selectedCategory == "Add On Services"
+                        ? FirebaseFirestore.instance
+                            .collection('addOnOrder')
+                            .where('userId', isEqualTo: currentUser.uid)
+                            .orderBy('createdAt', descending: true)
+                            .snapshots()
+                        : FirebaseFirestore.instance
+                            .collection('orders')
+                            .where('userId', isEqualTo: currentUser.uid)
+                            .orderBy('createdAt', descending: true)
+                            .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState ==
                           ConnectionState.waiting) {
@@ -197,7 +203,12 @@ class _HistoryPageState extends State<HistoryPage> {
 
   bool _isAddonOrder(Map<String, dynamic> data) {
     final t = (data['type'] ?? '').toString().toLowerCase().trim();
-    return t == 'addon';
+    if (t == 'addon') return true;
+
+    // New add-on storage uses dedicated collection `addOnOrder`
+    // and keeps IDs as `ADS-###`.
+    final id = (data['orderId'] ?? '').toString();
+    return id.startsWith('ADS-');
   }
 
   /// Insurance: `type == insurance`, legacy orders (no `type`), or any non-addon.
@@ -407,7 +418,8 @@ class _HistoryPageState extends State<HistoryPage> {
           "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
     }
 
-    final String titleSideDate = isAddon ? _addonCardDate(item) : dateText;
+    // For add-ons, date is shown only in ICON ROW 1 (calendar). Avoid duplicating it in the header row.
+    final String titleSideDate = isAddon ? '-' : dateText;
 
     final String firstIconText = isAddon
         ? _addonCardDate(item)

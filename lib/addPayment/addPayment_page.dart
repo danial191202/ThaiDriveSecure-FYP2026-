@@ -88,7 +88,7 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
   Future<String> _allocateAddonOrderId() async {
     final db = FirebaseFirestore.instance;
     final counterRef =
-        db.collection('counters').doc('addon_order_counter');
+        db.collection('counters').doc('addOnOrders');
     late String orderId;
     await db.runTransaction((tx) async {
       final snap = await tx.get(counterRef);
@@ -105,22 +105,25 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
     required String paymentStatus,
     String? receiptUrl,
   }) {
-    final lineTotal = widget.totalPrice;
+    final selectedDate = widget.pickupDate.trim().isNotEmpty
+        ? widget.pickupDate
+        : _displayDate();
+
     return <String, dynamic>{
       'orderId': orderId,
+      // Keep same key structure as the previous `orders` add-on schema
+      // so existing security rules & UI logic continue to work.
       'type': 'addon',
-      'fullName': widget.fullName,
-      'phone': widget.phone,
+      'serviceName': widget.serviceName,
+      'totalPrice': widget.totalPrice,
+      'quantity': widget.quantity,
       'customerName': widget.fullName,
       'phoneNumber': widget.phone,
-      'pickupDate': widget.pickupDate,
-      'selectedDate': widget.pickupDate.trim().isNotEmpty
-          ? widget.pickupDate
-          : _displayDate(),
+      'fullName': widget.fullName,
+      'phone': widget.phone,
       'deliveryMethod': widget.deliveryMethod,
-      'serviceName': widget.serviceName,
-      'quantity': widget.quantity,
-      'totalPrice': widget.totalPrice,
+      'selectedDate': selectedDate,
+      'pickupDate': widget.pickupDate,
       'customer': {
         'name': widget.fullName,
         'phone': widget.phone,
@@ -129,7 +132,7 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
         {
           'name': widget.serviceName,
           'quantity': widget.quantity,
-          'price': lineTotal,
+          'price': widget.totalPrice,
         },
       ],
       'pricing': {'totalPrice': widget.totalPrice},
@@ -139,7 +142,9 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
         if (receiptUrl != null) 'receiptUrl': receiptUrl,
         if (receiptUrl != null) 'submittedAt': Timestamp.now(),
       },
+      // Keep status stable for history card mapping.
       'status': 'Pending',
+      'paymentMethod': paymentMethod,
       'createdAt': Timestamp.now(),
     };
   }
@@ -159,7 +164,7 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
       final orderId = await _allocateAddonOrderId();
       final receiptUrl = await uploadFile(
         _receiptFile!,
-        'orders/$orderId/addon_receipt.jpg',
+        'addOnOrder/$orderId/addon_receipt.jpg',
       );
 
       final order = _buildOrderMap(
@@ -171,15 +176,17 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
       order['userId'] = user.uid;
 
       await FirebaseFirestore.instance
-          .collection('orders')
+          .collection('addOnOrder')
           .doc(orderId)
           .set(order);
 
       if (!mounted) return;
+      final Map<String, dynamic> savedOrderData =
+          Map<String, dynamic>.from(order);
       Navigator.pushReplacement(
         context,
         MaterialPageRoute<void>(
-          builder: (_) => AddReceiptPage(orderData: order),
+          builder: (_) => AddReceiptPage(orderData: savedOrderData),
         ),
       );
     } catch (e) {

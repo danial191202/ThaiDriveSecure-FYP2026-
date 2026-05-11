@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:thaidrivesecure/addOn/map_launcher.dart';
-import 'package:thaidrivesecure/addPayment/addReceipt_page.dart';
+import 'package:thaidrivesecure/screens/home_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Cash payment for add-on orders only (separate from [CashPaymentPage]).
@@ -65,7 +65,7 @@ class _AddCashPaymentPageState extends State<AddCashPaymentPage> {
     try {
       final db = FirebaseFirestore.instance;
       final counterRef =
-          db.collection('counters').doc('addon_order_counter');
+          db.collection('counters').doc('addOnOrders');
 
       late String orderId;
       await db.runTransaction((tx) async {
@@ -76,27 +76,28 @@ class _AddCashPaymentPageState extends State<AddCashPaymentPage> {
       });
 
       final lineTotal = widget.totalPrice;
+      final selectedDate = widget.pickupDate.trim().isNotEmpty
+          ? widget.pickupDate
+          : _displayDate();
       final order = <String, dynamic>{
         'orderId': orderId,
-        'type': 'addon',
         'userId': user.uid,
+        'type': 'addon',
         'fullName': widget.fullName,
         'phone': widget.phone,
         'customerName': widget.fullName,
         'phoneNumber': widget.phone,
-        'pickupDate': widget.pickupDate,
-        'selectedDate': widget.pickupDate.trim().isNotEmpty
-            ? widget.pickupDate
-            : _displayDate(),
         'deliveryMethod': widget.deliveryMethod,
-        'serviceName': widget.serviceName,
-        'quantity': widget.quantity,
-        'totalPrice': widget.totalPrice,
+        'selectedDate': selectedDate,
+        'pickupDate': widget.pickupDate,
         'customer': {
           'name': widget.fullName,
           'phone': widget.phone,
           'userId': user.uid,
         },
+        'serviceName': widget.serviceName,
+        'quantity': widget.quantity,
+        'totalPrice': lineTotal,
         'addonServices': [
           {
             'name': widget.serviceName,
@@ -104,22 +105,22 @@ class _AddCashPaymentPageState extends State<AddCashPaymentPage> {
             'price': lineTotal,
           },
         ],
-        'pricing': {'totalPrice': widget.totalPrice},
+        'pricing': {'totalPrice': lineTotal},
+        'paymentMethod': 'Cash',
         'payment': {
           'method': 'Cash',
-          'type': 'Cash',
           'status': 'Pending',
         },
         'status': 'Pending',
         'createdAt': Timestamp.now(),
       };
 
-      await db.collection('orders').doc(orderId).set(order);
+      await db.collection('addOnOrder').doc(orderId).set(order);
 
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil<void>(
         MaterialPageRoute<void>(
-          builder: (_) => AddReceiptPage(orderData: order),
+          builder: (_) => const HomePage(),
         ),
         (route) => false,
       );

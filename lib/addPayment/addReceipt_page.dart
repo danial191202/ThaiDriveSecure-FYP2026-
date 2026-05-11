@@ -6,8 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:gallery_saver_plus/gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:thaidrivesecure/screens/home_page.dart';
 
-/// Printable add-on receipt from [orderData] (history or post-payment).
+/// Add-on confirmation screen — layout aligned with [ReceiptPage].
 class AddReceiptPage extends StatefulWidget {
   final Map<String, dynamic> orderData;
 
@@ -20,24 +21,44 @@ class AddReceiptPage extends StatefulWidget {
 class _AddReceiptPageState extends State<AddReceiptPage> {
   final GlobalKey _receiptCaptureKey = GlobalKey();
   bool _downloading = false;
+  bool _showTick = false;
 
-  String _fmtRm(double v) => 'RM${v.toStringAsFixed(2)}';
+  String _fmt(double v) => 'RM ${v.toStringAsFixed(2)}';
 
   double _toDouble(dynamic v) =>
       double.tryParse((v ?? 0).toString()) ?? 0.0;
 
-  String _formatDate(dynamic raw) {
-    if (raw == null) return '-';
-    DateTime? dt;
-    if (raw is Timestamp) dt = raw.toDate();
-    if (raw is DateTime) dt = raw;
-    if (dt == null) {
-      final s = raw.toString().trim();
-      return s.isEmpty ? '-' : s;
+  DateTime _orderCreatedAt() {
+    final raw = widget.orderData['createdAt'];
+    if (raw is Timestamp) return raw.toDate();
+    if (raw is DateTime) return raw;
+    return DateTime.now();
+  }
+
+  String? _paymentReceiptUrl() {
+    final o = widget.orderData;
+    final p = o['payment'];
+    if (p is Map && p['receiptUrl'] != null) {
+      final s = p['receiptUrl'].toString().trim();
+      if (s.isNotEmpty) return s;
     }
-    final d = dt.day.toString().padLeft(2, '0');
-    final m = dt.month.toString().padLeft(2, '0');
-    return '$d/$m/${dt.year}';
+    final u = o['receiptUrl']?.toString().trim();
+    if (u != null && u.isNotEmpty) return u;
+    return null;
+  }
+
+  String _formatDate(DateTime dt) {
+    final day = dt.day.toString().padLeft(2, '0');
+    final month = dt.month.toString().padLeft(2, '0');
+    final year = dt.year.toString();
+    return '$day/$month/$year';
+  }
+
+  String _formatTime(DateTime dt) {
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    final hour12 = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    return '${hour12.toString().padLeft(2, '0')}:$minute $period';
   }
 
   List<Map<String, dynamic>> _addonLines() {
@@ -56,6 +77,15 @@ class _AddReceiptPageState extends State<AddReceiptPage> {
     return [
       {'name': name, 'quantity': qty, 'price': price},
     ];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _showTick = true);
+    });
   }
 
   Future<void> _downloadReceipt() async {
@@ -134,254 +164,62 @@ class _AddReceiptPageState extends State<AddReceiptPage> {
     return '-';
   }
 
-  String _receiptDateLine(Map<String, dynamic> order) {
-    final s = (order['selectedDate'] ?? '').toString().trim();
-    if (s.isNotEmpty) return s;
-    final p = (order['pickupDate'] ?? '').toString().trim();
-    if (p.isNotEmpty) return p;
-    return _formatDate(order['createdAt']);
+  String _pillLabel(Map<String, dynamic> order) {
+    final method = (order['paymentMethod'] ??
+            order['payment']?['method'] ??
+            'QR')
+        .toString();
+    if (method.toLowerCase().contains('cash')) {
+      return 'Cash payment';
+    }
+    return 'bank_slip.jpg';
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final order = widget.orderData;
-    final receiptId = order['orderId'] ?? 'ADS-000';
-    final name = _customerName(order);
-    final phone = _customerPhone(order);
-    final dateLine = _receiptDateLine(order);
-    final delivery =
-        (order['deliveryMethod'] ?? order['delivery']?['method'] ?? '-')
-            .toString();
-    final totalPrice = _toDouble(
-      order['totalPrice'] ??
-          order['totalAmount'] ??
-          order['pricing']?['totalPrice'],
-    );
-    final lines = _addonLines();
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1D3F70),
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'Receipt',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Column(
+  Widget _buildSuccessHeader(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
+      child: Column(
         children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-              child: RepaintBoundary(
-                key: _receiptCaptureKey,
-                child: Container(
-                  color: Colors.white,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Align(
-                        alignment: Alignment.center,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Image.asset(
-                              'assets/logo.png',
-                              height: 52,
-                              errorBuilder: (_, __, ___) => const Icon(
-                                Icons.shield_outlined,
-                                size: 48,
-                                color: Color(0xFF1D3F70),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            const Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'ThaiDriveSecure',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF1D3F70),
-                                  ),
-                                ),
-                                Text(
-                                  'by cnt enterprise',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF36A9A6),
-                                    fontStyle: FontStyle.italic,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 22),
-                      const Text(
-                        'Receipt',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Receipt ID : $receiptId',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      const Divider(
-                          height: 1, thickness: 1, color: Color(0xFFE0E4EB)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _infoRow('Name', name),
-                            _infoRow('No.Phone', phone),
-                            _infoRow('Date', dateLine),
-                            _infoRow('Delivery Method', delivery),
-                          ],
-                        ),
-                      ),
-                      const Divider(
-                          height: 1, thickness: 1, color: Color(0xFFE0E4EB)),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 18, bottom: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: List.generate(lines.length, (i) {
-                            final row = lines[i];
-                            final label = row['name']?.toString() ?? 'Item';
-                            final qty = row['quantity'] is int
-                                ? row['quantity'] as int
-                                : int.tryParse('${row['quantity'] ?? 1}') ?? 1;
-                            final price = _toDouble(row['price']);
-                            final title =
-                                qty == 1 ? label : '$label x$qty';
-                            return Padding(
-                              padding: EdgeInsets.only(
-                                bottom: i == lines.length - 1 ? 0 : 12),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      '${i + 1}. $title',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF1D3F70),
-                                      ),
-                                    ),
-                                  ),
-                                  Text(
-                                    _fmtRm(price),
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF1D3F70),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Divider(
-                          height: 1,
-                          thickness: 1,
-                          color: Colors.grey.shade300,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(0, 14, 0, 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Total',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            Text(
-                              _fmtRm(totalPrice),
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF36A9A6),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+          AnimatedScale(
+            scale: _showTick ? 1 : 0,
+            duration: const Duration(milliseconds: 520),
+            curve: Curves.easeOutBack,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 520),
+              curve: Curves.easeOutBack,
+              width: 84,
+              height: 84,
+              decoration: BoxDecoration(
+                color: const Color(0xFF3CB54A),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF3CB54A).withValues(alpha: 0.35),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
                   ),
-                ),
+                ],
               ),
+              child: const Icon(Icons.check, color: Colors.white, size: 46),
             ),
           ),
-          Container(
-            width: double.infinity,
-            color: const Color(0xFFEAF3F8),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-            child: SafeArea(
-              top: false,
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1D3F70),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 0,
-                  ),
-                  onPressed: _downloading ? null : _downloadReceipt,
-                  child: _downloading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          'Download Receipt',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                ),
-              ),
+          const SizedBox(height: 18),
+          const Text(
+            'Receipt Submitted\nSuccessfully!',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 31 / 1.35,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF131A28),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Your payment receipt has been received and is being verified by our staffs. This usually takes less than 2 hours.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF7D8896),
+              height: 1.4,
             ),
           ),
         ],
@@ -389,25 +227,473 @@ class _AddReceiptPageState extends State<AddReceiptPage> {
     );
   }
 
-  Widget _infoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: RichText(
-        text: TextSpan(
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black87,
-            height: 1.4,
+  Widget _buildReceiptCard() {
+    final order = widget.orderData;
+    final receiptId = order['orderId'] ?? 'ADS-000';
+    final created = _orderCreatedAt();
+    final lines = _addonLines();
+    final totalPrice = _toDouble(
+      order['totalPrice'] ??
+          order['totalAmount'] ??
+          order['pricing']?['totalPrice'],
+    );
+    final name = _customerName(order);
+    final phone = _customerPhone(order);
+    final delivery =
+        (order['deliveryMethod'] ?? order['delivery']?['method'] ?? '-')
+            .toString();
+    final selected = (order['selectedDate'] ?? order['pickupDate'] ?? '')
+        .toString()
+        .trim();
+    final receiptUrl = _paymentReceiptUrl();
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A4C6A95),
+            blurRadius: 14,
+            offset: Offset(0, 7),
           ),
-          children: [
-            TextSpan(
-              text: '$label : ',
-              style: const TextStyle(fontWeight: FontWeight.w600),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Receipt ID: $receiptId',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Date: ${_formatDate(created)}    Time: ${_formatTime(created)}',
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF8A94A3),
+              fontWeight: FontWeight.w500,
             ),
-            TextSpan(text: value),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Name: $name',
+            style: const TextStyle(fontSize: 12.5, color: Color(0xFF4A5568)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'No.Phone: $phone',
+            style: const TextStyle(fontSize: 12.5, color: Color(0xFF4A5568)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Delivery: $delivery${selected.isNotEmpty ? ' · $selected' : ''}',
+            style: const TextStyle(fontSize: 12.5, color: Color(0xFF4A5568)),
+          ),
+          const SizedBox(height: 10),
+          const Divider(height: 1, color: Color(0xFFE6EAF0)),
+          const SizedBox(height: 10),
+          const Text(
+            'DOCUMENT UPLOADED',
+            style: TextStyle(
+              fontSize: 11,
+              letterSpacing: 0.4,
+              color: Color(0xFF97A1AF),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F7FB),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle, size: 16, color: Color(0xFF3CB54A)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _pillLabel(order),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          CustomPaint(
+            painter: _DashedBorderPainter(
+              color: const Color(0xFFB7C0CE),
+              strokeWidth: 1,
+              dashWidth: 6,
+              dashSpace: 4,
+              radius: 10,
+            ),
+            child: Container(
+              width: double.infinity,
+              constraints: BoxConstraints(
+                minHeight: receiptUrl != null ? 100 : 0,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFD),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: receiptUrl != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        receiptUrl,
+                        height: 100,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            _buildOrderLinesFallback(lines, totalPrice),
+                      ),
+                    )
+                  : _buildOrderLinesFallback(lines, totalPrice),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderLinesFallback(
+    List<Map<String, dynamic>> lines,
+    double totalPrice,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ...List.generate(lines.length, (i) {
+          final row = lines[i];
+          final label = row['name']?.toString() ?? 'Item';
+          final qty = row['quantity'] is int
+              ? row['quantity'] as int
+              : int.tryParse('${row['quantity'] ?? 1}') ?? 1;
+          final price = _toDouble(row['price']);
+          final title = qty == 1 ? label : '$label x$qty';
+          return Padding(
+            padding: EdgeInsets.only(bottom: i == lines.length - 1 ? 0 : 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${i + 1}. $title',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A2433),
+                    ),
+                  ),
+                ),
+                Text(
+                  _fmt(price),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1D3F70),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Divider(height: 1, color: Color(0xFFE6EAF0)),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'TOTAL',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+                color: Color(0xFF1E3D72),
+              ),
+            ),
+            Text(
+              _fmt(totalPrice),
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                color: Color(0xFF36A9A6),
+              ),
+            ),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWhatsNext() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE9F1FB),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD4E2F4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "WHAT'S NEXT?",
+            style: TextStyle(
+              fontSize: 11,
+              letterSpacing: 0.5,
+              color: Color(0xFF72839A),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildStepItem(
+            icon: Icons.check_circle,
+            iconColor: const Color(0xFF3CB54A),
+            title: 'Payment Received',
+          ),
+          const SizedBox(height: 10),
+          _buildStepItem(
+            icon: Icons.pending,
+            iconColor: const Color(0xFFF2B01E),
+            title: 'Next: Order processing',
+            subtitle:
+                'Our team will verify your payment and prepare your add-on service.',
+          ),
+          const SizedBox(height: 10),
+          _buildStepItem(
+            icon: Icons.radio_button_unchecked,
+            iconColor: const Color(0xFFBDC5D2),
+            title: 'Service ready',
+            subtitle:
+                'You will be notified when your order is ready for pickup or delivery.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepItem({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    String? subtitle,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 1),
+          child: Icon(icon, size: 19, color: iconColor),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13.4,
+                  color: Color(0xFF1A2433),
+                ),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 12.2,
+                    height: 1.35,
+                    color: Color(0xFF7D8896),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDownloadButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: OutlinedButton(
+        onPressed: _downloading ? null : _downloadReceipt,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF2EA7A0),
+          side: const BorderSide(color: Color(0xFF45C2B8), width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+        ),
+        child: _downloading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              )
+            : const Text(
+                'Download Receipt',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildBackToHomeButton(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF45C2B8), Color(0xFF2EA7A0)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1F2EA7A0),
+            blurRadius: 14,
+            offset: Offset(0, 7),
+          ),
+        ],
+      ),
+      child: SizedBox(
+        height: 54,
+        child: ElevatedButton.icon(
+          onPressed: () {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute<void>(
+                builder: (context) => const HomePage(),
+              ),
+              (route) => false,
+            );
+          },
+          icon: const Text(
+            'Back to Home',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+            ),
+          ),
+          label: const Icon(Icons.arrow_forward, color: Colors.white, size: 19),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+          ),
         ),
       ),
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF2F5FA),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1D3F70),
+        elevation: 0,
+        title: const Text(
+          'Upload Success',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildSuccessHeader(theme),
+              const SizedBox(height: 18),
+              RepaintBoundary(
+                key: _receiptCaptureKey,
+                child: _buildReceiptCard(),
+              ),
+              const SizedBox(height: 16),
+              _buildWhatsNext(),
+              const SizedBox(height: 16),
+              _buildDownloadButton(),
+              const SizedBox(height: 12),
+              _buildBackToHomeButton(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double dashWidth;
+  final double dashSpace;
+  final double radius;
+
+  _DashedBorderPainter({
+    required this.color,
+    required this.strokeWidth,
+    required this.dashWidth,
+    required this.dashSpace,
+    required this.radius,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final rect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rect);
+
+    for (final metric in path.computeMetrics()) {
+      double distance = 0;
+      while (distance < metric.length) {
+        final nextDistance = distance + dashWidth;
+        canvas.drawPath(metric.extractPath(distance, nextDistance), paint);
+        distance = nextDistance + dashSpace;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.dashWidth != dashWidth ||
+        oldDelegate.dashSpace != dashSpace ||
+        oldDelegate.radius != radius;
   }
 }
