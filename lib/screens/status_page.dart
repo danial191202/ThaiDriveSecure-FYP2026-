@@ -10,7 +10,7 @@ String _formatStatusDisplay(String? orderStatus) {
   return formattedStatus;
 }
 
-/// Application tracking — same `orders` query as Application History; UI only.
+/// Application tracking — insurance (`orders`) + add-on (`addOnOrder`); UI only.
 class StatusPage extends StatefulWidget {
   const StatusPage({super.key});
 
@@ -145,19 +145,85 @@ class _StatusPageState extends State<StatusPage> {
     return 'Expected delivery: ${exp.day} ${months[exp.month - 1]} ${exp.year}';
   }
 
-  List<Map<String, dynamic>> _ordersFromSnapshot(QuerySnapshot snap) {
-    final list = snap.docs.map((doc) {
-      final m = Map<String, dynamic>.from(doc.data()! as Map<String, dynamic>);
-      m['orderId'] ??= doc.id;
-      return m;
-    }).toList()
-      ..sort((a, b) {
-        final ac = _toDate(a['createdAt']) ??
-            DateTime.fromMillisecondsSinceEpoch(0);
-        final bc = _toDate(b['createdAt']) ??
-            DateTime.fromMillisecondsSinceEpoch(0);
-        return bc.compareTo(ac);
-      });
+  bool _isAddonOrder(Map<String, dynamic> order) {
+    if (order['_isAddon'] == true) return true;
+    final t = (order['type'] ?? '').toString().toLowerCase().trim();
+    if (t == 'addon') return true;
+    final id = (order['orderId'] ?? '').toString();
+    return id.startsWith('ADS-');
+  }
+
+  String _orderTypeLabel(Map<String, dynamic> order) =>
+      _isAddonOrder(order) ? 'Add On Service' : 'Insurance Package';
+
+  String _buildPackageName(Map<String, dynamic> order) {
+    final packageType = (order['packageType'] ?? '').toString().trim();
+    final vehicleType = (order['vehicleType'] ??
+            order['trip']?['vehicleType'] ??
+            '')
+        .toString()
+        .trim();
+
+    if (packageType.isNotEmpty) {
+      final short = packageType.replaceFirst(RegExp(r'^Insurance\s*'), '');
+      return vehicleType.isNotEmpty
+          ? 'Package $short ($vehicleType)'
+          : 'Package $short';
+    }
+
+    final selectedItems = order['selectedItems'] as List<dynamic>?;
+    if (selectedItems == null || selectedItems.isEmpty) {
+      return 'Insurance Package';
+    }
+    return selectedItems.join(', ');
+  }
+
+  String _orderCardTitle(Map<String, dynamic> order) {
+    if (_isAddonOrder(order)) {
+      final n = (order['serviceName'] ?? 'Add-on').toString().trim();
+      final dur = (order['durationLabel'] ?? '').toString().trim();
+      if (n.isEmpty) return 'Add-on';
+      if (dur.isNotEmpty) return '$n ($dur)';
+      return n;
+    }
+    return _buildPackageName(order);
+  }
+
+  List<Map<String, dynamic>> _mergeOrders(
+    QuerySnapshot? ordersSnap,
+    QuerySnapshot? addonSnap,
+  ) {
+    final list = <Map<String, dynamic>>[];
+
+    if (ordersSnap != null) {
+      for (final doc in ordersSnap.docs) {
+        final m =
+            Map<String, dynamic>.from(doc.data()! as Map<String, dynamic>);
+        m['orderId'] ??= doc.id;
+        if (_isAddonOrder(m)) continue;
+        m['_isAddon'] = false;
+        list.add(m);
+      }
+    }
+
+    if (addonSnap != null) {
+      for (final doc in addonSnap.docs) {
+        final m =
+            Map<String, dynamic>.from(doc.data()! as Map<String, dynamic>);
+        m['orderId'] ??= doc.id;
+        m['_isAddon'] = true;
+        list.add(m);
+      }
+    }
+
+    list.sort((a, b) {
+      final ac =
+          _toDate(a['createdAt']) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bc =
+          _toDate(b['createdAt']) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bc.compareTo(ac);
+    });
+
     return list
         .where((o) => !_dismissedOrderIds.contains(o['orderId']?.toString()))
         .toList();
@@ -165,19 +231,13 @@ class _StatusPageState extends State<StatusPage> {
 
   List<Map<String, dynamic>> _visibleOrders(List<Map<String, dynamic>> all) {
     if (selectedTab == 'All') return List.from(all);
-    final want = selectedTab.trim().toLowerCase();
-    return all.where((o) {
-      final s = (o['status'] ?? '').toString().trim().toLowerCase();
-      return s == want;
-    }).toList();
+    return all.where((o) => _trackingTabForOrder(o) == selectedTab).toList();
   }
 
-  /// Maps raw [order['status']] to a dropdown value (canonical casing from [_tabs]).
-  String _dropdownValueForOrderStatus(dynamic raw) {
-    final r = (raw ?? '').toString().trim().toLowerCase();
-    if (r.isEmpty) return 'All';
+  /// Maps order tracking tab to dropdown value (canonical casing from [_tabs]).
+  String _dropdownValueForTrackingTab(String tab) {
     for (final t in _tabs) {
-      if (t.toLowerCase() == r) return t;
+      if (t.toLowerCase() == tab.trim().toLowerCase()) return t;
     }
     return 'All';
   }
@@ -233,45 +293,56 @@ class _StatusPageState extends State<StatusPage> {
                         .where('userId', isEqualTo: user.uid)
                         .orderBy('createdAt', descending: true)
                         .snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      if (snapshot.hasError) {
-                        return Center(
-                          child: Text(
-                            'Error loading orders:\n${snapshot.error}',
-                            textAlign: TextAlign.center,
-                          ),
-                        );
-                      }
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            'No orders found.',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        );
-                      }
+                    builder: (context, ordersSnapshot) {
+                      return StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('addOnOrder')
+                            .where('userId', isEqualTo: user.uid)
+                            .snapshots(),
+                        builder: (context, addonSnapshot) {
+                          final waiting = ordersSnapshot.connectionState ==
+                                  ConnectionState.waiting ||
+                              addonSnapshot.connectionState ==
+                                  ConnectionState.waiting;
+                          if (waiting &&
+                              !ordersSnapshot.hasData &&
+                              !addonSnapshot.hasData) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+                          if (ordersSnapshot.hasError &&
+                              addonSnapshot.hasError) {
+                            return Center(
+                              child: Text(
+                                'Error loading orders:\n${ordersSnapshot.error}',
+                                textAlign: TextAlign.center,
+                              ),
+                            );
+                          }
 
-                      final all = _ordersFromSnapshot(snapshot.data!);
-                      final visible = _visibleOrders(all);
+                          final all = _mergeOrders(
+                            ordersSnapshot.data,
+                            addonSnapshot.data,
+                          );
+                          final visible = _visibleOrders(all);
 
-                      if (visible.isEmpty) {
-                        return Center(
-                          child: Text(
-                            selectedTab == 'All'
-                                ? 'No orders to display.'
-                                : 'No orders in "$selectedTab".',
-                            style: const TextStyle(
-                                color: Colors.black54, fontSize: 16),
-                          ),
-                        );
-                      }
+                          if (visible.isEmpty) {
+                            return Center(
+                              child: Text(
+                                selectedTab == 'All'
+                                    ? 'No orders to display.'
+                                    : 'No orders in "$selectedTab".',
+                                style: const TextStyle(
+                                    color: Colors.black54, fontSize: 16),
+                              ),
+                            );
+                          }
 
-                      return selectedTab == 'All'
-                          ? _buildAllList(visible)
-                          : _buildFilteredDetail(visible);
+                          return selectedTab == 'All'
+                              ? _buildAllList(visible)
+                              : _buildFilteredDetail(visible);
+                        },
+                      );
                     },
                   ),
                 ),
@@ -325,8 +396,11 @@ class _StatusPageState extends State<StatusPage> {
         final order = visible[i];
         return _OrderListCard(
           order: order,
+          orderTitle: _orderCardTitle(order),
+          orderTypeLabel: _orderTypeLabel(order),
           onTap: () {
-            setState(() => selectedTab = _dropdownValueForOrderStatus(order['status']));
+            setState(() => selectedTab =
+                _dropdownValueForTrackingTab(_trackingTabForOrder(order)));
           },
         );
       },
@@ -348,6 +422,8 @@ class _StatusPageState extends State<StatusPage> {
           children: [
             _MergedTrackingCard(
               order: order,
+              orderTitle: _orderCardTitle(order),
+              orderTypeLabel: _orderTypeLabel(order),
               displayStatus: displayStatus,
               isCompleted: isCompleted,
               timelineIndex: ti,
@@ -380,10 +456,14 @@ class _StatusPageState extends State<StatusPage> {
 
 class _OrderListCard extends StatelessWidget {
   final Map<String, dynamic> order;
+  final String orderTitle;
+  final String orderTypeLabel;
   final VoidCallback onTap;
 
   const _OrderListCard({
     required this.order,
+    required this.orderTitle,
+    required this.orderTypeLabel,
     required this.onTap,
   });
 
@@ -462,6 +542,24 @@ class _OrderListCard extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
+              Text(
+                orderTitle,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                orderTypeLabel,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade600,
+                ),
+              ),
               const SizedBox(height: 14),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -503,6 +601,8 @@ class _OrderListCard extends StatelessWidget {
 /// Single card: header (STATUS + status + order id), car + description, timeline.
 class _MergedTrackingCard extends StatelessWidget {
   final Map<String, dynamic> order;
+  final String orderTitle;
+  final String orderTypeLabel;
   final String displayStatus;
   final bool isCompleted;
   final int timelineIndex;
@@ -521,6 +621,8 @@ class _MergedTrackingCard extends StatelessWidget {
 
   const _MergedTrackingCard({
     required this.order,
+    required this.orderTitle,
+    required this.orderTypeLabel,
     required this.displayStatus,
     required this.isCompleted,
     required this.timelineIndex,
@@ -612,6 +714,24 @@ class _MergedTrackingCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            orderTitle,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: isCompleted ? completedGreen : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            orderTypeLabel,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey.shade600,
+            ),
           ),
           const SizedBox(height: 12),
           Row(

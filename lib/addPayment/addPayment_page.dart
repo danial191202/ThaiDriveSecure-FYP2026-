@@ -21,6 +21,8 @@ class AddPaymentPage extends StatefulWidget {
   final String serviceName;
   final int quantity;
   final double totalPrice;
+  final String durationLabel;
+  final String destinationLocation;
 
   const AddPaymentPage({
     super.key,
@@ -31,6 +33,8 @@ class AddPaymentPage extends StatefulWidget {
     required this.serviceName,
     required this.quantity,
     required this.totalPrice,
+    this.durationLabel = '',
+    this.destinationLocation = '',
   });
 
   @override
@@ -99,6 +103,14 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
     return orderId;
   }
 
+  String _addonLineName() {
+    final d = widget.durationLabel.trim();
+    if (d.isNotEmpty) {
+      return '${widget.serviceName} ($d)';
+    }
+    return widget.serviceName;
+  }
+
   Map<String, dynamic> _buildOrderMap({
     required String orderId,
     required String paymentMethod,
@@ -108,6 +120,9 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
     final selectedDate = widget.pickupDate.trim().isNotEmpty
         ? widget.pickupDate
         : _displayDate();
+
+    final dest = widget.destinationLocation.trim();
+    final dur = widget.durationLabel.trim();
 
     return <String, dynamic>{
       'orderId': orderId,
@@ -124,13 +139,15 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
       'deliveryMethod': widget.deliveryMethod,
       'selectedDate': selectedDate,
       'pickupDate': widget.pickupDate,
+      if (dur.isNotEmpty) 'durationLabel': dur,
+      if (dest.isNotEmpty) 'destinationLocation': dest,
       'customer': {
         'name': widget.fullName,
         'phone': widget.phone,
       },
       'addonServices': [
         {
-          'name': widget.serviceName,
+          'name': _addonLineName(),
           'quantity': widget.quantity,
           'price': widget.totalPrice,
         },
@@ -191,6 +208,7 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
       );
     } catch (e) {
       if (mounted) {
+        setState(() => _receiptSubmitted = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
@@ -212,6 +230,8 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
           serviceName: widget.serviceName,
           quantity: widget.quantity,
           totalPrice: widget.totalPrice,
+          durationLabel: widget.durationLabel,
+          destinationLocation: widget.destinationLocation,
         ),
       ),
     );
@@ -324,10 +344,9 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
                           padding: const EdgeInsets.symmetric(vertical: 13),
                         ),
                         onPressed: () {
-                          if (_receiptFile != null) {
-                            setState(() => _receiptSubmitted = true);
-                            Navigator.pop(context);
-                          }
+                          if (_receiptFile == null) return;
+                          setState(() => _receiptSubmitted = true);
+                          Navigator.of(context).pop();
                         },
                         child: const Text(
                           'Submit Receipt',
@@ -351,7 +370,10 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
   @override
   Widget build(BuildContext context) {
     final canConfirm = _receiptSubmitted;
-    return Scaffold(
+
+    return Stack(
+      children: [
+        Scaffold(
       backgroundColor: const Color(0xFFF2F4F7),
       body: Column(
         children: [
@@ -361,7 +383,7 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const Text(
                     'TOTAL PAYABLE',
@@ -380,6 +402,7 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
                   const SizedBox(height: 16),
                   const Text(
                     'CNT ENTERPRISE CHANGLUN TOURS',
+                    textAlign: TextAlign.center,
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
@@ -398,7 +421,10 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _cashCard(),
+                  SizedBox(
+                    width: double.infinity,
+                    child: _cashCard(),
+                  ),
                   if (canConfirm) ...[
                     const SizedBox(height: 16),
                     SizedBox(
@@ -434,6 +460,17 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
           ),
         ],
       ),
+    ),
+        if (_isUploading)
+          Positioned.fill(
+            child: ColoredBox(
+              color: Colors.black.withOpacity(0.25),
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -523,7 +560,10 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
       ),
       child: Column(
         children: [
-          const Text('DuitNow', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text(
+            'DuitNow',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 10),
           Image.asset('assets/qr.png', height: 180),
           const SizedBox(height: 8),

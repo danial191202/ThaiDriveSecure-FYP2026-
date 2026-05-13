@@ -14,6 +14,8 @@ class AddCashPaymentPage extends StatefulWidget {
   final String serviceName;
   final int quantity;
   final double totalPrice;
+  final String durationLabel;
+  final String destinationLocation;
 
   const AddCashPaymentPage({
     super.key,
@@ -24,6 +26,8 @@ class AddCashPaymentPage extends StatefulWidget {
     required this.serviceName,
     required this.quantity,
     required this.totalPrice,
+    this.durationLabel = '',
+    this.destinationLocation = '',
   });
 
   @override
@@ -43,6 +47,14 @@ class _AddCashPaymentPageState extends State<AddCashPaymentPage> {
   String _formatAddonOrderId(int n) => 'ADS-${n.toString().padLeft(3, '0')}';
 
   String _fmt(double v) => 'RM ${v.toStringAsFixed(2)}';
+
+  String _addonLineName() {
+    final d = widget.durationLabel.trim();
+    if (d.isNotEmpty) {
+      return '${widget.serviceName} ($d)';
+    }
+    return widget.serviceName;
+  }
 
   String _displayDate() {
     final p = widget.pickupDate.trim();
@@ -79,6 +91,8 @@ class _AddCashPaymentPageState extends State<AddCashPaymentPage> {
       final selectedDate = widget.pickupDate.trim().isNotEmpty
           ? widget.pickupDate
           : _displayDate();
+      final dest = widget.destinationLocation.trim();
+      final dur = widget.durationLabel.trim();
       final order = <String, dynamic>{
         'orderId': orderId,
         'userId': user.uid,
@@ -90,6 +104,8 @@ class _AddCashPaymentPageState extends State<AddCashPaymentPage> {
         'deliveryMethod': widget.deliveryMethod,
         'selectedDate': selectedDate,
         'pickupDate': widget.pickupDate,
+        if (dur.isNotEmpty) 'durationLabel': dur,
+        if (dest.isNotEmpty) 'destinationLocation': dest,
         'customer': {
           'name': widget.fullName,
           'phone': widget.phone,
@@ -100,7 +116,7 @@ class _AddCashPaymentPageState extends State<AddCashPaymentPage> {
         'totalPrice': lineTotal,
         'addonServices': [
           {
-            'name': widget.serviceName,
+            'name': _addonLineName(),
             'quantity': widget.quantity,
             'price': lineTotal,
           },

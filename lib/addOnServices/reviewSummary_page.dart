@@ -9,6 +9,9 @@ class ReviewSummaryPage extends StatelessWidget {
   final String serviceName;
   final int quantity;
   final double totalPrice;
+  /// Towing (and similar): e.g. `7 Days` — persisted on the order.
+  final String durationLabel;
+  final String destinationLocation;
 
   const ReviewSummaryPage({
     super.key,
@@ -19,6 +22,8 @@ class ReviewSummaryPage extends StatelessWidget {
     required this.serviceName,
     required this.quantity,
     required this.totalPrice,
+    this.durationLabel = '',
+    this.destinationLocation = '',
   });
 
   @override
@@ -65,6 +70,14 @@ class ReviewSummaryPage extends StatelessWidget {
                     _labelValue('Name', fullName),
                     const SizedBox(height: 10),
                     _labelValue('No.Telephone', phone),
+                    if (destinationLocation.trim().isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _labelValue('Destination', destinationLocation.trim()),
+                    ],
+                    if (durationLabel.trim().isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _labelValue('Duration', durationLabel.trim()),
+                    ],
                     const SizedBox(height: 10),
                     _labelValue('Pickup Date', pickupDate),
                     const SizedBox(height: 10),
@@ -89,7 +102,9 @@ class ReviewSummaryPage extends StatelessWidget {
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              '$serviceName x$quantity',
+                              durationLabel.trim().isNotEmpty
+                                  ? '$serviceName (${durationLabel.trim()}) x$quantity'
+                                  : '$serviceName x$quantity',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
@@ -149,6 +164,8 @@ class ReviewSummaryPage extends StatelessWidget {
                           serviceName: serviceName,
                           quantity: quantity,
                           totalPrice: sharedTotalPrice,
+                          durationLabel: durationLabel,
+                          destinationLocation: destinationLocation,
                         ),
                       ),
                     );

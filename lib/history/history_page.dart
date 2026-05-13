@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:thaidrivesecure/addPayment/addReceipt_page.dart';
+import 'package:thaidrivesecure/history/addReceiptHistory_page.dart';
 import 'package:thaidrivesecure/history/receiptHistory_page.dart';
 
 class HistoryPage extends StatefulWidget {
@@ -118,7 +118,6 @@ class _HistoryPageState extends State<HistoryPage> {
                         ? FirebaseFirestore.instance
                             .collection('addOnOrder')
                             .where('userId', isEqualTo: currentUser.uid)
-                            .orderBy('createdAt', descending: true)
                             .snapshots()
                         : FirebaseFirestore.instance
                             .collection('orders')
@@ -341,7 +340,10 @@ class _HistoryPageState extends State<HistoryPage> {
   String _buildCardTitle(Map<String, dynamic> item) {
     if (_isAddonOrder(item)) {
       final n = (item["serviceName"] ?? "Add-on").toString().trim();
-      return n.isEmpty ? "Add-on" : n;
+      final dur = (item["durationLabel"] ?? "").toString().trim();
+      if (n.isEmpty) return "Add-on";
+      if (dur.isNotEmpty) return "$n ($dur)";
+      return n;
     }
     return _buildPackageName(item);
   }
@@ -581,7 +583,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute<void>(
-                        builder: (_) => AddReceiptPage(orderData: item),
+                        builder: (_) => AddReceiptHistoryPage(orderData: item),
                       ),
                     );
                   } else {
