@@ -15,7 +15,7 @@ import 'package:thaidrivesecure/pages/volu/voluIns_page.dart';
 import 'package:thaidrivesecure/pages/comp/compIns_page.dart';
 import 'package:thaidrivesecure/screens/status_page.dart';
 import 'package:thaidrivesecure/history/history_page.dart';
-import 'package:thaidrivesecure/screens/setting_page.dart';
+import 'package:thaidrivesecure/screens/profile_page.dart';
 import 'package:thaidrivesecure/pages/voluPlus/voluPlusIns_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -564,7 +564,7 @@ class _HomePageState extends State<HomePage> {
           case 3:
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const SettingsPage()),
+              MaterialPageRoute(builder: (_) => const ProfilePage()),
             );
             break;
         }
@@ -576,7 +576,7 @@ class _HomePageState extends State<HomePage> {
           label: "Status",
         ),
         BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
-        BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Setting"),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
       ],
     );
   }
