@@ -1,0 +1,41 @@
+@startuml ThaiDriveSecure_Mobile_Application_Use_Case_Diagram
+title ThaiDriveSecure Mobile Application Use Case Diagram
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor white
+  BorderColor black
+  FontColor black
+}
+
+actor Customer
+
+rectangle "ThaiDriveSecure Mobile Application" {
+  usecase "Authenticate Account" as UC_Authenticate
+
+  usecase "Purchase Insurance & Services" as UC_Purchase
+  usecase "Enter Customer Information" as UC_EnterInfo
+  usecase "Upload Required Documents" as UC_UploadDocs
+
+  usecase "Make Payment" as UC_Payment
+  usecase "Generate Receipt" as UC_GenerateReceipt
+  usecase "Generate Queue Number" as UC_GenerateQueue
+
+  usecase "Track Application Status" as UC_TrackStatus
+  usecase "View Purchase History" as UC_ViewHistory
+
+  UC_Purchase ..> UC_EnterInfo : <<include>>
+  UC_Purchase ..> UC_UploadDocs : <<include>>
+  UC_Payment ..> UC_GenerateReceipt : <<include>>
+  UC_Payment ..> UC_GenerateQueue : <<include>>
+}
+
+Customer --> UC_Authenticate
+Customer --> UC_Purchase
+Customer --> UC_Payment
+Customer --> UC_TrackStatus
+Customer --> UC_ViewHistory
+
+@enduml

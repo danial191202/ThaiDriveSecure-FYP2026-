@@ -15,7 +15,7 @@ import 'package:thaidrivesecure/pages/volu/voluIns_page.dart';
 import 'package:thaidrivesecure/pages/comp/compIns_page.dart';
 import 'package:thaidrivesecure/screens/status_page.dart';
 import 'package:thaidrivesecure/history/history_page.dart';
-import 'package:thaidrivesecure/screens/profile_page.dart';
+import 'package:thaidrivesecure/profile/profile_page.dart';
 import 'package:thaidrivesecure/pages/voluPlus/voluPlusIns_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -81,6 +81,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFEAF6FB),
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,

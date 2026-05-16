@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:thaidrivesecure/profile/notification_page.dart';
 import 'package:thaidrivesecure/screens/welcome_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -99,15 +100,28 @@ class _ProfilePageState extends State<ProfilePage> {
 
     final uid = user.uid;
 
-    await FirebaseFirestore.instance.collection('users').doc(uid).set(
-      {
-        'fullName': name,
-        'phone': phone,
-        'email': user.email,
-        'updatedAt': FieldValue.serverTimestamp(),
-      },
-      SetOptions(merge: true),
-    );
+    // Refresh auth token so Firestore sees a valid signed-in user.
+    await user.getIdToken(true);
+
+    final profileRef =
+        FirebaseFirestore.instance.collection('users').doc(uid);
+    final profileData = {
+      'fullName': name,
+      'phone': phone,
+      'email': user.email,
+      'userId': uid,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    final existing = await profileRef.get();
+    if (existing.exists) {
+      await profileRef.update(profileData);
+    } else {
+      await profileRef.set({
+        ...profileData,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
 
     try {
       if (user.displayName != name) {
@@ -232,10 +246,10 @@ class _ProfilePageState extends State<ProfilePage> {
                             );
                           } on FirebaseException catch (e) {
                             setDialogState(() => isSaving = false);
-                            _showSnack(
-                              e.message ?? 'Failed to update profile',
-                              isError: true,
-                            );
+                            final message = e.code == 'permission-denied'
+                                ? 'Permission denied. Deploy Firestore rules or sign in again.'
+                                : (e.message ?? 'Failed to update profile');
+                            _showSnack(message, isError: true);
                           } catch (e) {
                             setDialogState(() => isSaving = false);
                             _showSnack(
@@ -614,6 +628,18 @@ class _ProfilePageState extends State<ProfilePage> {
                         icon: Icons.headset_mic_outlined,
                         title: 'Customer Support',
                         onTap: _openCustomerSupportWhatsApp,
+                      ),
+                      _menuItem(
+                        icon: Icons.notifications_outlined,
+                        title: 'Notification',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const NotificationPage(),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 20),
                       _sectionTitle('Application'),

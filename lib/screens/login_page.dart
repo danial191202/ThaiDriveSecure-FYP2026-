@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'home_page.dart';
@@ -18,6 +19,54 @@ class _LoginPageState extends State<LoginPage> {
   final AuthService _authService = AuthService();
 
   bool isLoading = false;
+  bool isPasswordVisible = false;
+
+  String _authErrorMessage(Object error) {
+    if (error is FirebaseAuthException) {
+      return _messageForAuthCode(error.code);
+    }
+    final text = error.toString().toLowerCase();
+    for (final code in const [
+      'invalid-email',
+      'user-not-found',
+      'wrong-password',
+      'invalid-credential',
+      'too-many-requests',
+      'network-request-failed',
+    ]) {
+      if (text.contains(code)) return _messageForAuthCode(code);
+    }
+    return 'Login failed. Please try again.';
+  }
+
+  String _messageForAuthCode(String code) {
+    switch (code) {
+      case 'invalid-email':
+        return 'Invalid email format';
+      case 'user-not-found':
+        return 'Account not found';
+      case 'wrong-password':
+        return 'Incorrect password';
+      case 'invalid-credential':
+        return 'Email or password is incorrect';
+      case 'too-many-requests':
+        return 'Too many attempts. Try again later';
+      case 'network-request-failed':
+        return 'No internet connection';
+      default:
+        return 'Login failed. Please try again.';
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red.shade700,
+      ),
+    );
+  }
 
   Future<void> login() async {
     if (!_formKey.currentState!.validate()) return;
@@ -37,9 +86,7 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      _showError(_authErrorMessage(e));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -98,13 +145,14 @@ class _LoginPageState extends State<LoginPage> {
               /// Email
               TextFormField(
                 controller: emailController,
+                keyboardType: TextInputType.emailAddress,
                 decoration: inputStyle("Email"),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Email is required";
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter email';
                   }
                   if (!value.contains('@')) {
-                    return "Enter a valid email";
+                    return 'Invalid email format';
                   }
                   return null;
                 },
@@ -115,14 +163,28 @@ class _LoginPageState extends State<LoginPage> {
               /// Password
               TextFormField(
                 controller: passwordController,
-                obscureText: true,
-                decoration: inputStyle("Password"),
+                obscureText: !isPasswordVisible,
+                decoration: inputStyle("Password").copyWith(
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      isPasswordVisible
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                      color: Colors.grey.shade700,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        isPasswordVisible = !isPasswordVisible;
+                      });
+                    },
+                  ),
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return "Password is required";
+                    return 'Please enter password';
                   }
                   if (value.length < 6) {
-                    return "Password must be at least 6 characters";
+                    return 'Password must be at least 6 characters';
                   }
                   return null;
                 },
