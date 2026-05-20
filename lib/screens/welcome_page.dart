@@ -15,7 +15,10 @@ class WelcomePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             /// LOGO
-            Image.asset('assets/logo.png', height: 200),
+            Hero(
+              tag: 'app_logo',
+              child: Image.asset('assets/logo.png', height: 200),
+            ),
 
             const SizedBox(height: 20),
 

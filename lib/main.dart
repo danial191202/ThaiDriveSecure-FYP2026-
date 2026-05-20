@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'screens/welcome_page.dart';
+import 'screens/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,7 +55,7 @@ class FirebaseInitializer extends StatelessWidget {
         }
 
         /// Success
-        return const WelcomePage();
+        return const SplashScreen();
       },
     );
   }

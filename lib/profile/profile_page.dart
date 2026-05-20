@@ -659,15 +659,6 @@ class _ProfilePageState extends State<ProfilePage> {
                               'ThaiDriveSecure collects user information such as name, phone number, passport, and vehicle documents only for insurance and travel processing purposes. User information is securely stored and will not be shared with unauthorized parties.',
                         ),
                       ),
-                      _menuItem(
-                        icon: Icons.description_outlined,
-                        title: 'Terms & Conditions',
-                        onTap: () => _openInfoDialog(
-                          title: 'Terms & Conditions',
-                          content:
-                              'By using ThaiDriveSecure, users agree to provide accurate travel and personal information. ThaiDriveSecure is not responsible for delays caused by incorrect document submissions or incomplete payment verification.',
-                        ),
-                      ),
                       const SizedBox(height: 24),
                     ],
                   ),
