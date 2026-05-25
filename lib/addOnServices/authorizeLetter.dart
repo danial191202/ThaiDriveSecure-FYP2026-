@@ -48,7 +48,7 @@ class _AuthorizeLetterState extends State<AuthorizeLetter> {
       ),
       body: Column(
         children: [
-          buildStepper(2),
+          buildStepper(1),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),

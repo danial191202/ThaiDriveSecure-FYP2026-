@@ -73,7 +73,7 @@ class _TowingState extends State<Towing> {
       ),
       body: Column(
         children: [
-          buildStepper(2),
+          buildStepper(1),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),

@@ -105,7 +105,7 @@ class _AdapterState extends State<Adapter> {
             _deliveryDropdown(),
             const SizedBox(height: 12),
             const Text(
-              'Adapter like images:',
+              'Adapter Examples   :',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),

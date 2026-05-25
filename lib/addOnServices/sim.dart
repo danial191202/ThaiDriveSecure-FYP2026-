@@ -39,7 +39,7 @@ class _SimState extends State<Sim> {
       ),
       body: Column(
         children: [
-          buildStepper(2),
+          buildStepper(1),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
@@ -105,23 +105,11 @@ class _SimState extends State<Sim> {
             _deliveryDropdown(),
             const SizedBox(height: 12),
             const Text(
-              'SIM like images:',
+              'SIM Examples:',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: SizedBox(
-                  width: 180,
-                  height: 110,
-                  child: Image.asset(
-                    'assets/sim2.png',
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
+            _simExamplesGallery(),
                   const SizedBox(height: 16),
                   ],
                 ),
@@ -410,6 +398,61 @@ class _SimState extends State<Sim> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// sim2 (portrait) + sim3 (landscape) — same row height, sized to fit sim3.
+  Widget _simExamplesGallery() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFD1D7E0)),
+      ),
+      padding: const EdgeInsets.all(6),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const gap = 6.0;
+          // Full-width 16:9 height so both images render larger in the row.
+          final rowHeight = constraints.maxWidth * (1125 / 2000);
+
+          return SizedBox(
+            height: rowHeight,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  flex: 4,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.asset(
+                      'assets/sim2.png',
+                      height: rowHeight,
+                      width: double.infinity,
+                      fit: BoxFit.contain,
+                      alignment: Alignment.center,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: gap),
+                Expanded(
+                  flex: 6,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.asset(
+                      'assets/sim3.png',
+                      height: rowHeight,
+                      width: double.infinity,
+                      fit: BoxFit.fitWidth,
+                      alignment: Alignment.center,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

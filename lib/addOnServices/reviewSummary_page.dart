@@ -46,7 +46,7 @@ class ReviewSummaryPage extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
           child: Column(
             children: [
-              buildStepper(2),
+              buildStepper(1),
               const SizedBox(height: 12),
               const Text(
                 'Review Summary',
