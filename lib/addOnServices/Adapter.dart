@@ -479,9 +479,9 @@ class _AdapterState extends State<Adapter> {
         children: [
           Expanded(child: step(1, 'Personal\nInformations')),
           connector(),
-          Expanded(child: step(2, 'Upload\nDocuments')),
-          connector(),
-          Expanded(child: step(3, 'Payment\n ')),
+          Expanded(child: step(2, 'Payment\n ')),
+          //connector(),
+          //Expanded(child: step(3, 'Payment\n ')),
         ],
       ),
     );
