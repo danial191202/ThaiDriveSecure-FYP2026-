@@ -51,7 +51,7 @@ class _CompInsState extends State<CompIns> {
     if (widget.vehicleType == "Motorcycle") {
       return ["3 Months", "6 Months", "1 Year"];
     }
-    return ["9 Days", "19 Days", "1 Month", "3 Months", "6 Months", "1 Year"];
+    return ["9 Days", "18 Days", "1 Month", "3 Months", "6 Months", "1 Year"];
   }
 
   String formatDate(DateTime? date) {

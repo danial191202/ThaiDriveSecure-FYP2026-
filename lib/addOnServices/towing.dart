@@ -814,7 +814,7 @@ class _TowingState extends State<Towing> {
 
   Widget buildStepper(int currentStep) {
     Widget step(int number, String label) {
-      final bool active = currentStep == number;
+      final bool active = number == 1;
       return Column(
         children: [
           Container(
@@ -870,9 +870,9 @@ class _TowingState extends State<Towing> {
         children: [
           Expanded(child: step(1, 'Personal\nInformations')),
           connector(),
-          Expanded(child: step(2, 'Payment\n ')),
-          //connector(),
-          //Expanded(child: step(3, 'Payment\n ')),
+          Expanded(child: step(2, 'Review\nSummary')),
+          connector(),
+          Expanded(child: step(3, 'Payment\n ')),
         ],
       ),
     );

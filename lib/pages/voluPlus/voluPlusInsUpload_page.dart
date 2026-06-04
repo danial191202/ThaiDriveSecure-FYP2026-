@@ -120,7 +120,7 @@ class _VoluPlusInsUploadState extends State<VoluPlusInsUpload> {
           case "9 Days":
             insurancePrice = 100;
             break;
-          case "19 Days":
+          case "18 Days":
             insurancePrice = 130;
             break;
           case "1 Month":
@@ -142,7 +142,7 @@ class _VoluPlusInsUploadState extends State<VoluPlusInsUpload> {
           case "9 Days":
             insurancePrice = 110;
             break;
-          case "19 Days":
+          case "18 Days":
             insurancePrice = 150;
             break;
           case "1 Month":
@@ -164,7 +164,7 @@ class _VoluPlusInsUploadState extends State<VoluPlusInsUpload> {
           case "9 Days":
             insurancePrice = 50;
             break;
-          case "19 Days":
+          case "18 Days":
             insurancePrice = 70;
             break;
           case "1 Month":
@@ -187,7 +187,7 @@ class _VoluPlusInsUploadState extends State<VoluPlusInsUpload> {
           case "9 Days":
             insurancePrice = 85;
             break;
-          case "19 Days":
+          case "18 Days":
             insurancePrice = 110;
             break;
           case "1 Month":

@@ -120,7 +120,7 @@ class _CompInsUploadState extends State<CompInsUpload> {
           case "9 Days":
             insurancePrice = 45;
             break;
-          case "19 Days":
+          case "18 Days":
             insurancePrice = 60;
             break;
           case "1 Month":
@@ -142,7 +142,7 @@ class _CompInsUploadState extends State<CompInsUpload> {
           case "9 Days":
             insurancePrice = 50;
             break;
-          case "19 Days":
+          case "18 Days":
             insurancePrice = 70;
             break;
           case "1 Month":
@@ -164,7 +164,7 @@ class _CompInsUploadState extends State<CompInsUpload> {
           case "9 Days":
             insurancePrice = 20;
             break;
-          case "19 Days":
+          case "18 Days":
             insurancePrice = 30;
             break;
           case "1 Month":
@@ -187,7 +187,7 @@ class _CompInsUploadState extends State<CompInsUpload> {
           case "9 Days":
             insurancePrice = 35;
             break;
-          case "19 Days":
+          case "18 Days":
             insurancePrice = 50;
             break;
           case "1 Month":

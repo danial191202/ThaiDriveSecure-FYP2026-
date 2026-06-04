@@ -60,7 +60,7 @@ class _VoluInsSubmitState extends State<VoluInsSubmit> {
         switch (durationLabel) {
           case "9 Days":
             return 75;
-          case "19 Days":
+          case "18 Days":
             return 95;
           case "1 Month":
             return 120;
@@ -77,7 +77,7 @@ class _VoluInsSubmitState extends State<VoluInsSubmit> {
         switch (durationLabel) {
           case "9 Days":
             return 85;
-          case "19 Days":
+          case "18 Days":
             return 110;
           case "1 Month":
             return 140;
@@ -94,7 +94,7 @@ class _VoluInsSubmitState extends State<VoluInsSubmit> {
         switch (durationLabel) {
           case "9 Days":
             return 35;
-          case "19 Days":
+          case "18 Days":
             return 50;
           case "1 Month":
             return 65;
@@ -112,7 +112,7 @@ class _VoluInsSubmitState extends State<VoluInsSubmit> {
         switch (durationLabel) {
           case "9 Days":
             return 60;
-          case "19 Days":
+          case "18 Days":
             return 80;
           case "1 Month":
             return 100;
