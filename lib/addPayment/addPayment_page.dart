@@ -586,7 +586,7 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: _receiptSubmitted
-              ? const Color(0xFF36A9A6)
+              ? const Color.fromARGB(255, 158, 197, 196)
               : const Color(0xFF1F3C68),
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(

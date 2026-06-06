@@ -53,6 +53,10 @@ class _VoluInsSubmitState extends State<VoluInsSubmit> {
   int get passengers => widget.passengerCount;
   String get durationLabel => widget.duration;
   String get vehicleType => widget.vehicleType;
+  //countDay
+  int get tripDays {
+  return returnDate.difference(departDate).inDays + 1;
+}
 
   int get insurancePrice {
     switch (vehicleType) {
@@ -275,7 +279,8 @@ class _VoluInsSubmitState extends State<VoluInsSubmit> {
           _row("Vehicle Type:", vehicleType),
           _row(
             "When:",
-            "${_formatDate(departDate)} - ${_formatDate(returnDate)} ($durationLabel)",
+            "${_formatDate(departDate)} - ${_formatDate(returnDate)} "
+            "($tripDays Day${tripDays > 1 ? 's' : ''})",
           ),
           _row("Passenger:", passengers.toString()),
           const Divider(height: 24),
